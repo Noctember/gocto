@@ -140,7 +140,7 @@ func (err *CommandError) Error() string {
 // It will call Sprintf() on the content if atleast one vararg is passed.
 func (ctx *CommandContext) Reply(content string, args ...interface{}) (*discordgo.Message, error) {
 	if !ctx.Command.Editable {
-		return ctx.ReplyNoEdit(content)
+		return ctx.ReplyNoEdit(content, args)
 	}
 
 	// This is neccessary to avoid problems with dynamic content
