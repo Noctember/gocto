@@ -14,7 +14,7 @@ import (
 )
 
 // VERSION is a constant representing the current version of the framework.
-const VERSION = "1.0.0"
+const VERSION = "1.0.1"
 
 // COLOR is the color for sapphire's embed colors.
 const COLOR = 0x7F139E
