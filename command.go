@@ -27,6 +27,7 @@ type Command struct {
 	RequiredPermissions int            // Permissions the user needs to run this command. (default: 0)
 	DeleteAfter         bool           // Deletes command when ran (default: false)
 	BotPermissions      int            // Permissions the bot needs to perform this command. (default: 0)
+	Override            bool           // Override message editting (default: true)
 }
 
 func NewCommand(name string, category string, run CommandHandler) *Command {
@@ -46,6 +47,7 @@ func NewCommand(name string, category string, run CommandHandler) *Command {
 		BotPermissions:      0,
 		DeleteAfter:         false,
 		Usage:               make([]*UsageTag, 0),
+		Override:            true,
 	}
 }
 
@@ -87,6 +89,11 @@ func (c *Command) Disable() *Command {
 // Enable enables the command.
 func (c *Command) Enable() *Command {
 	c.Enabled = true
+	return c
+}
+
+func (c *Command) NoOverride() *Command {
+	c.Override = false
 	return c
 }
 
@@ -178,8 +185,9 @@ func (ctx *CommandContext) Reply(content string, args ...interface{}) (*discordg
 		ctx.Bot.CommandEdits[ctx.Message.ID] = msg.ID
 		return msg, nil
 	}
-	if ctx.Command.Name == "debug" {
+	if !ctx.Command.Override {
 		old, _ := ctx.Session.ChannelMessage(ctx.Channel.ID, m)
+		print(old.Content)
 		return ctx.Session.ChannelMessageEditComplex(discordgo.NewMessageEdit(ctx.Channel.ID, m).
 			SetContent(old.Content + "\n" + content))
 	}
