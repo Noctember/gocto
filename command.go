@@ -93,8 +93,8 @@ func (c *Command) Enable() *Command {
 }
 
 // Go is being dumb, just an edit
-func (c *Command) NoOverride() *Command {
-	c.Override = false
+func (c *Command) NoOverride(status bool) *Command {
+	c.Override = status
 	return c
 }
 
