@@ -92,6 +92,7 @@ func (c *Command) Enable() *Command {
 	return c
 }
 
+// Go is being dumb, just an edit
 func (c *Command) NoOverride() *Command {
 	c.Override = false
 	return c
