@@ -33,6 +33,9 @@ func ParseUsage(usage string) ([]*UsageTag, error) {
 			} else if strings.HasPrefix(current.Name, "@") && current.Type == "" {
 				current.Name = strings.TrimPrefix(current.Name, "@")
 				current.Type = "user"
+			} else if strings.HasPrefix(current.Name, "#") && current.Type == "" {
+				current.Name = strings.TrimPrefix(current.Name, "#")
+				current.Type = "channel"
 			} else if current.Type == "" {
 				current.Type = "literal"
 			}
@@ -50,6 +53,9 @@ func ParseUsage(usage string) ([]*UsageTag, error) {
 			} else if strings.HasPrefix(current.Name, "@") && current.Type == "" {
 				current.Name = strings.TrimPrefix(current.Name, "@")
 				current.Type = "user"
+			} else if strings.HasPrefix(current.Name, "#") && current.Type == "" {
+				current.Name = strings.TrimPrefix(current.Name, "#")
+				current.Type = "channel"
 			} else if current.Type == "" {
 				current.Type = "literal"
 			}

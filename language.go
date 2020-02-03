@@ -57,4 +57,5 @@ var English = NewLanguage("en-US").
 	Set("COMMAND_OWNER_ONLY", "This command is for the bot owner only!").
 	Set("COMMAND_GUILD_ONLY", "This command can only be used in a server!").
 	Set("COMMAND_COOLDOWN", "You can use this command again in %d seconds.").
-	Set("COMMAND_DISABLED", "This command has been disabled globally by the bot owner.")
+	Set("COMMAND_DISABLED", "This command has been disabled globally by the bot owner.").
+	Set("COMMAND_MISSING_PERMS", "You are missing %s permission(s) to run this command.")

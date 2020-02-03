@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"io"
+	"runtime"
 	"strings"
 )
 
@@ -24,6 +25,7 @@ type Command struct {
 	Cooldown            int            // Command cooldown in seconds. (default: 0)
 	Editable            bool           // Wether this command's response will be editable. (default: true)
 	RequiredPermissions int            // Permissions the user needs to run this command. (default: 0)
+	DeleteAfter         bool           // Deletes command when ran (default: false)
 	BotPermissions      int            // Permissions the bot needs to perform this command. (default: 0)
 }
 
@@ -34,7 +36,7 @@ func NewCommand(name string, category string, run CommandHandler) *Command {
 		Run:                 run,
 		Aliases:             []string{},
 		Enabled:             true,
-		Description:         "No Description Provided.",
+		Description:         "Mysterious command.",
 		OwnerOnly:           false,
 		GuildOnly:           false,
 		UsageString:         "",
@@ -42,6 +44,7 @@ func NewCommand(name string, category string, run CommandHandler) *Command {
 		Cooldown:            0,
 		RequiredPermissions: 0,
 		BotPermissions:      0,
+		DeleteAfter:         false,
 		Usage:               make([]*UsageTag, 0),
 	}
 }
@@ -55,6 +58,11 @@ func (c *Command) AddAliases(aliases ...string) *Command {
 // SetDescription sets the command's description
 func (c *Command) SetDescription(description string) *Command {
 	c.Description = description
+	return c
+}
+
+func (c *Command) Delete() *Command {
+	c.DeleteAfter = true
 	return c
 }
 
@@ -106,6 +114,11 @@ func (c *Command) SetCooldown(cooldown int) *Command {
 	return c
 }
 
+func (c *Command) SetPermission(permbit int) *Command {
+	c.RequiredPermissions = permbit
+	return c
+}
+
 // CommandContext represents an execution context of a command.
 type CommandContext struct {
 	Command     *Command           // The currently executing command.
@@ -129,6 +142,8 @@ type CommandContext struct {
 type CommandError struct {
 	Err     interface{}     // The value passed to panic()
 	Context *CommandContext // The context of the command, use this to e.g get the command's name etc.
+	Line    int
+	File    string
 }
 
 // Error implements the error interface, it simply calls fmt.Sprint on the panicked value.
@@ -139,19 +154,20 @@ func (err *CommandError) Error() string {
 // Reply replies with a string.
 // It will call Sprintf() on the content if atleast one vararg is passed.
 func (ctx *CommandContext) Reply(content string, args ...interface{}) (*discordgo.Message, error) {
+
 	if !ctx.Command.Editable {
-		return ctx.ReplyNoEdit(content, args)
+		return ctx.ReplyNoEdit(content)
 	}
 
+	if len(args) > 0 {
+		content = fmt.Sprintf(content, args...)
+	}
 	// This is neccessary to avoid problems with dynamic content
 	// ctx.Reply(dynamicVariable)
 	// If the user doesn't intend to use the formatting then don't use Sprintf
 	// Because it will mess up any '%s' etc in the content even if the user did not intent to format it.
 	// Another solution is a seperate Replyf function which was my original solution
 	// But i think it's cleaner to stick with one function.
-	if len(args) > 0 {
-		content = fmt.Sprintf(content, args...)
-	}
 
 	m, ok := ctx.Bot.CommandEdits[ctx.Message.ID]
 	if !ok {
@@ -268,14 +284,14 @@ func (ctx *CommandContext) SendFile(name string, file io.Reader) (*discordgo.Mes
 // It also replies with a message indicating an unexpected error.
 func (ctx *CommandContext) Error(err interface{}, args ...interface{}) {
 	// We make err an interface so it can also be invoked standalone with error objects, etc.
-
+	_, file, line, _ := runtime.Caller(1)
 	// See comments in Reply
 	if len(args) > 0 {
 		err = fmt.Sprintf(fmt.Sprint(err), args...)
 	}
 
 	ctx.ReplyLocale("COMMAND_ERROR")
-	ctx.Bot.ErrorHandler(ctx.Bot, &CommandError{Err: err, Context: ctx})
+	ctx.Bot.ErrorHandler(ctx.Bot, &CommandError{Err: err, Context: ctx, File: file, Line: line})
 }
 
 // Flag returns the value of a commmnd flag, if it is a bool-flag use HasFlag() instead.

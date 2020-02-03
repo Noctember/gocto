@@ -351,7 +351,6 @@ func (bot *Bot) LoadBuiltins() *Bot {
 			SetColor(bot.Color).
 			AddField("Go Version", strings.TrimPrefix(runtime.Version(), "go")).
 			AddField("DiscordGo Version", discordgo.VERSION).
-			AddField("Sapphire Version", VERSION).
 			AddField("Bot Stats", fmt.Sprintf("**Guilds:** %d\n**Users:** %d\n**Channels:** %d\n**Uptime:** %s", guilds, users, channels, humanize.RelTime(bot.Uptime, time.Now(), "", ""))).
 			AddField("Command Stats", fmt.Sprintf("**Total Commands:** %d\n**Commands Ran:** %d", len(bot.Commands), bot.CommandsRan)).
 			AddField("Memory Stats", fmt.Sprintf("**Used:** %s / %s\n**Garbage Collected:** %s\n**GC Cycles:** %d\n**Forced GC Cycles:** %d\n**Last GC:** %s\n**Next GC Target:** %s\n**Goroutines:** %d",

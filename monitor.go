@@ -2,6 +2,7 @@ package sapphire
 
 import (
 	"fmt"
+	"github.com/Noctember/sapphire/helpers"
 	"github.com/bwmarrin/discordgo"
 	"regexp"
 	"strings"
@@ -247,6 +248,11 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 		return
 	}
 
+	if cmd.RequiredPermissions != 0 && !PermissionsForMember(ctx.Guild, cctx.Member(ctx.Author.ID)).Has(cmd.RequiredPermissions) {
+		cctx.ReplyLocale("COMMAND_MISSING_PERMS", helpers.GetPermissionsText(cmd.RequiredPermissions))
+		return
+	}
+
 	if cmd.GuildOnly && ctx.Message.GuildID == "" {
 		cctx.ReplyLocale("COMMAND_GUILD_ONLY")
 		return
@@ -271,10 +277,12 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 	bot.CommandsRan++
 
 	defer func() {
+		if cmd.DeleteAfter {
+			ctx.Session.ChannelMessageDelete(ctx.Channel.ID, ctx.Message.ID)
+		}
 		if err := recover(); err != nil {
 			bot.ErrorHandler(bot, &CommandError{Err: err, Context: cctx})
 		}
 	}()
-
 	cmd.Run(cctx)
 }

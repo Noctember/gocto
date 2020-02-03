@@ -11,7 +11,7 @@ import (
 
 // Argument represents an argument, it has methods to grab the right type.
 type Argument struct {
-	value    interface{}
+	Value    interface{}
 	provided bool
 }
 
@@ -23,15 +23,15 @@ type Argument struct {
 
 // Returns the argument as a string.
 func (arg *Argument) AsString() string {
-	return arg.value.(string)
+	return arg.Value.(string)
 }
 
 func (arg *Argument) AsInt() int {
-	return arg.value.(int)
+	return arg.Value.(int)
 }
 
 func (arg *Argument) AsFloat() float64 {
-	return arg.value.(float64)
+	return arg.Value.(float64)
 }
 
 // IsProvided checks if this argument is provided, for optional arguments you must use this before casting.
@@ -40,34 +40,38 @@ func (arg *Argument) IsProvided() bool {
 }
 
 func (arg *Argument) AsUser() *discordgo.User {
-	return arg.value.(*discordgo.User)
+	return arg.Value.(*discordgo.User)
 }
 
 func (arg *Argument) AsMember() *discordgo.Member {
-	return arg.value.(*discordgo.Member)
+	return arg.Value.(*discordgo.Member)
 }
 
 func (arg *Argument) AsGuild() *discordgo.Guild {
-	return arg.value.(*discordgo.Guild)
+	return arg.Value.(*discordgo.Guild)
 }
 
 func (arg *Argument) AsRole() *discordgo.Role {
-	return arg.value.(*discordgo.Role)
+	return arg.Value.(*discordgo.Role)
 }
 
 func (arg *Argument) AsBool() bool {
-	return arg.value.(bool)
+	return arg.Value.(bool)
 }
 
 func (arg *Argument) AsMessage() *discordgo.Message {
-	return arg.value.(*discordgo.Message)
+	return arg.Value.(*discordgo.Message)
+}
+
+func (arg *Argument) AsChannel() *discordgo.Channel {
+	return arg.Value.(*discordgo.Channel)
 }
 
 // ----- Argument parsing -----
 
 // quick helper so i don't repeat provided:true
 func arg(val interface{}) *Argument {
-	return &Argument{provided: true, value: val}
+	return &Argument{provided: true, Value: val}
 }
 
 // The Regexp used for matching user mentions.
