@@ -286,13 +286,18 @@ func (bot *Bot) LoadBuiltins() *Bot {
 				aliases = strings.Join(cmd.Aliases, ", ")
 			}
 
+			extra := ""
+			if cmd.AvailableTags != "" {
+				extra = "Flags: " + cmd.AvailableTags
+			}
 			ctx.BuildEmbed(NewEmbed().
-				SetDescription(fmt.Sprintf("**Name:** %s\n**Description:** %s\n**Category:** %s\n**Aliases:** %s\n**Usage:** %s",
+				SetDescription(fmt.Sprintf("**Name:** %s\n**Description:** %s\n**Category:** %s\n**Aliases:** %s\n**Usage:** %s \n%s",
 					cmd.Name,
 					cmd.Description,
 					cmd.Category,
 					aliases,
 					fmt.Sprintf("%s%s %s", ctx.Prefix, cmd.Name, HumanizeUsage(cmd.UsageString)),
+					extra,
 				)).SetColor(bot.Color).SetTitle("Command Help"))
 			return
 		}

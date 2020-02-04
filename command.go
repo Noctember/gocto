@@ -28,6 +28,7 @@ type Command struct {
 	DeleteAfter         bool           // Deletes command when ran (default: false)
 	BotPermissions      int            // Permissions the bot needs to perform this command. (default: 0)
 	Override            bool           // Override message editting (default: true)
+	AvailableTags       string         // Shows available tags in help command (default: none)
 }
 
 func NewCommand(name string, category string, run CommandHandler) *Command {
@@ -48,6 +49,7 @@ func NewCommand(name string, category string, run CommandHandler) *Command {
 		DeleteAfter:         false,
 		Usage:               make([]*UsageTag, 0),
 		Override:            true,
+		AvailableTags:       "",
 	}
 }
 
