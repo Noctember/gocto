@@ -292,8 +292,12 @@ func (ctx *CommandContext) BuildEmbedNoEdit(embed *Embed) (*discordgo.Message, e
 }
 
 // SendFile sends a file with name
-func (ctx *CommandContext) SendFile(name string, file io.Reader) (*discordgo.Message, error) {
-	return ctx.Session.ChannelFileSend(ctx.Channel.ID, name, file)
+func (ctx *CommandContext) SendFile(name string, file io.Reader, content string, args ...interface{}) (*discordgo.Message, error) {
+	if len(args) > 0 {
+		content = fmt.Sprintf(content, args...)
+	}
+
+	return ctx.Session.ChannelFileSendWithMessage(ctx.Channel.ID, content, name, file)
 }
 
 // Error invokes the bot's error handler, see bot.SetErrorHandler
