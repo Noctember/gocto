@@ -101,7 +101,7 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 		match := MentionRegex.FindStringSubmatch(raw)
 
 		if raw == "^" {
-			msg, _ := ctx.Session.ChannelMessages(ctx.Channel.ID, 1, string(ctx.Message.Timestamp), "", "")
+			msg, _ := ctx.Session.ChannelMessages(ctx.Channel.ID, 1, ctx.Message.ID, "", "")
 			return arg(ctx.Member(msg[0].ID)), nil
 		}
 
@@ -117,7 +117,7 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 		match := MentionRegex.FindStringSubmatch(raw)
 
 		if raw == "^" {
-			msg, _ := ctx.Session.ChannelMessages(ctx.Channel.ID, 1, string(ctx.Message.Timestamp), "", "")
+			msg, _ := ctx.Session.ChannelMessages(ctx.Channel.ID, 1, ctx.Message.ID, "", "")
 			user, _ := ctx.FetchUser(msg[0].ID)
 			return arg(user), nil
 		}
