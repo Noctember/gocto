@@ -99,6 +99,12 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 		return arg(val), err
 	case "member":
 		match := MentionRegex.FindStringSubmatch(raw)
+
+		if raw == "^" {
+			msg, _ := ctx.Session.ChannelMessages(ctx.Channel.ID, 1, string(ctx.Message.Timestamp), "", "")
+			return arg(ctx.Member(msg[0].ID)), nil
+		}
+
 		if len(match) < 2 {
 			return nil, fmt.Errorf("**%s** must be a valid member mention or ID.", tag.Name)
 		}
@@ -109,6 +115,12 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 		return arg(member), nil
 	case "user":
 		match := MentionRegex.FindStringSubmatch(raw)
+
+		if raw == "^" {
+			msg, _ := ctx.Session.ChannelMessages(ctx.Channel.ID, 1, string(ctx.Message.Timestamp), "", "")
+			user, _ := ctx.FetchUser(msg[0].ID)
+			return arg(user), nil
+		}
 
 		if len(match) < 2 {
 			return nil, fmt.Errorf("**%s** must be a valid user mention or ID.", tag.Name)
