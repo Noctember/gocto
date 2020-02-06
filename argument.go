@@ -102,7 +102,7 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 
 		if raw == "^" {
 			msg, _ := ctx.Session.ChannelMessages(ctx.Channel.ID, 1, ctx.Message.ID, "", "")
-			return arg(ctx.Member(msg[0].ID)), nil
+			return arg(ctx.Member(msg[0].Author.ID)), nil
 		}
 
 		if len(match) < 2 {
@@ -118,7 +118,7 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 
 		if raw == "^" {
 			msg, _ := ctx.Session.ChannelMessages(ctx.Channel.ID, 1, ctx.Message.ID, "", "")
-			user, _ := ctx.FetchUser(msg[0].ID)
+			user, _ := ctx.FetchUser(msg[0].Author.ID)
 			return arg(user), nil
 		}
 
