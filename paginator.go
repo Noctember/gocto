@@ -26,7 +26,8 @@ type Paginator struct {
 	Message   *discordgo.Message        // The sent message to be edited as we go
 	AuthorID  string                    // The user that can control this paginator.
 	StopChan  chan bool                 // Stop paginator by sending to this channel.
-	Timeout   time.Duration             // Duration of when the paginator expires. (default: 5minutes)
+	Extra     string
+	Timeout   time.Duration // Duration of when the paginator expires. (default: 5minutes)
 	lock      sync.Mutex
 }
 
@@ -44,6 +45,7 @@ func NewPaginator(session *discordgo.Session, channel, author string) *Paginator
 		AuthorID:  author,
 		StopChan:  make(chan bool),
 		Timeout:   time.Minute * 5,
+		Extra:     "",
 		Template:  func() *Embed { return NewEmbed() },
 	}
 }
@@ -96,6 +98,10 @@ func (p *Paginator) Stop() {
 	p.StopChan <- true
 }
 
+func (p *Paginator) SetExtra(extra string) {
+	p.Extra = extra
+}
+
 // Retrieves the next index for the next page
 // returns 0 to go back to first page if we are on last page already.
 func (p *Paginator) getNextIndex() int {
@@ -121,7 +127,7 @@ func (p *Paginator) getPreviousIndex() int {
 func (p *Paginator) SetFooter() {
 	for index, embed := range p.Pages {
 		embed.Footer = &discordgo.MessageEmbedFooter{
-			Text: fmt.Sprintf("Page %d/%d", index+1, len(p.Pages)),
+			Text: fmt.Sprintf("Page %d/%d %s", index+1, len(p.Pages), p.Extra),
 		}
 	}
 }
