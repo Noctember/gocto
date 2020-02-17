@@ -1,6 +1,7 @@
 package sapphire
 
 import (
+	"fmt"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -45,13 +46,17 @@ func (e *Embed) SetDescription(description string) *Embed {
 }
 
 // AddField [name] [value]
-func (e *Embed) AddField(name, value string) *Embed {
+func (e *Embed) AddField(name, value string, args ...interface{}) *Embed {
 	if len(value) > 1024 {
 		value = value[:1024]
 	}
 
 	if len(name) > 1024 {
 		name = name[:1024]
+	}
+
+	if len(args) > 0 {
+		value = fmt.Sprintf(value, args...)
 	}
 
 	e.Fields = append(e.Fields, &discordgo.MessageEmbedField{
@@ -62,13 +67,17 @@ func (e *Embed) AddField(name, value string) *Embed {
 	return e
 }
 
-func (e *Embed) AddInlineField(name, value string) *Embed {
+func (e *Embed) AddInlineField(name, value string, args ...interface{}) *Embed {
 	if len(value) > 1024 {
 		value = value[:1024]
 	}
 
 	if len(name) > 1024 {
 		name = name[:1024]
+	}
+
+	if len(args) > 0 {
+		value = fmt.Sprintf(value, args...)
 	}
 
 	e.Fields = append(e.Fields, &discordgo.MessageEmbedField{
