@@ -190,7 +190,6 @@ func (ctx *CommandContext) Reply(content string, args ...interface{}) (*discordg
 	}
 	if !ctx.Command.Override {
 		old, _ := ctx.Session.ChannelMessage(ctx.Channel.ID, m)
-		print(old.Content)
 		return ctx.Session.ChannelMessageEditComplex(discordgo.NewMessageEdit(ctx.Channel.ID, m).
 			SetContent(old.Content + "\n" + content))
 	}
