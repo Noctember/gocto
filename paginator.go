@@ -175,7 +175,10 @@ func (p *Paginator) Run() {
 		return
 	}
 	p.Message = msg
-	p.addReactions()
+	if len(p.Pages) != 1 {
+		p.addReactions()
+	}
+
 	p.Running = true
 	start := time.Now()
 	var r *discordgo.MessageReaction
