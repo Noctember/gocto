@@ -287,7 +287,7 @@ func (bot *Bot) LoadBuiltins() *Bot {
 		ctx.EditLocale(msg, "COMMAND_PING_PONG", taken.String(), -1)
 		httpPing := time.Since(started)
 
-		ctx.EditLocale(msg, "COMMAND_PING_PONG", bottime.Sub(usertime).Nanoseconds(), httpPing.String())
+		ctx.EditLocale(msg, "COMMAND_PING_PONG", bottime.Sub(usertime).String(), httpPing.String())
 	}).SetDescription("Pong! Responds with Bot latency."))
 
 	bot.AddCommand(NewCommand("help", "General", func(ctx *CommandContext) {
