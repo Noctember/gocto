@@ -20,6 +20,7 @@ const VERSION = "1.0.1"
 const COLOR = 0x7F139E
 
 type PrefixHandler func(b *Bot, m *discordgo.Message, dm bool) string
+type ListHandler func(b *Bot, m *discordgo.Message) bool
 type LocaleHandler func(b *Bot, m *discordgo.Message, dm bool) string
 type ErrorHandler func(b *Bot, err interface{})
 
@@ -40,7 +41,8 @@ type Bot struct {
 	DefaultLocale    *Language            // Default locale to fallback. (default: en-US)
 	CommandTyping    bool                 // Wether to start typing when a command is being ran. (default: true)
 	ErrorHandler     ErrorHandler         // The handler to catch panics in monitors (which includes commands).
-	MentionPrefix    bool                 // Wether to allow @mention of the bot to be used as a prefix too. (default: true)
+	ListHandler      ListHandler
+	MentionPrefix    bool // Wether to allow @mention of the bot to be used as a prefix too. (default: true)
 	sweepTicker      *time.Ticker
 	Application      *discordgo.Application // The bot's application.
 	Uptime           time.Time              // The time the bot hit ready event.
@@ -56,6 +58,9 @@ func New(s *discordgo.Session) *Bot {
 		},
 		Language: func(_ *Bot, _ *discordgo.Message, _ bool) string {
 			return "en-US"
+		},
+		ListHandler: func(b *Bot, m *discordgo.Message) bool {
+			return true
 		},
 		ErrorHandler: func(_ *Bot, err interface{}) {
 			fmt.Printf("Panic recovered: %v\n", err)
@@ -136,6 +141,13 @@ func (bot *Bot) SetDefaultLocale(locale string) *Bot {
 
 func (bot *Bot) SetLocaleHandler(handler LocaleHandler) *Bot {
 	bot.Language = handler
+	return bot
+}
+
+// SetPrefixHandler sets the prefix handler, the function is responsible to return the right prefix for the command call.
+// Use this for dynamic prefixes, e.g fetch prefix from database.
+func (bot *Bot) SetListHandler(list ListHandler) *Bot {
+	bot.ListHandler = list
 	return bot
 }
 

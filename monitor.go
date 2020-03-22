@@ -152,8 +152,11 @@ var delim = regexp.MustCompile("(\\s)(?:\\s)+")
 
 // This is the builtin monitor responsible for running commands.
 func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
-	prefix := bot.Prefix(bot, ctx.Message, ctx.Channel.Type == discordgo.ChannelTypeDM)
+	if bot.ListHandler(bot, ctx.Message) {
+		return
+	}
 
+	prefix := bot.Prefix(bot, ctx.Message, ctx.Channel.Type == discordgo.ChannelTypeDM)
 	if !strings.HasPrefix(ctx.Message.Content, prefix) {
 		if bot.MentionPrefix {
 			// Check mention prefix.
