@@ -47,7 +47,7 @@ var English = NewLanguage("en-US").
 	Set("LOCALE_NO_KEY", "No localization found for the key \"%s\" Please report this to the developers.").
 	Set("COMMAND_ERROR", "Something went wrong, please try again later.").
 	Set("COMMAND_PING", "Pong!").
-	Set("COMMAND_PING_PONG", "Pong!\nLatency: **%s**\nAPI Latency: **%s**").
+	Set("COMMAND_PING_PONG", "Pong!\nHTTP API: **%s**\nGateway: **%s**").
 	Set("COMMAND_ENABLE_ALREADY", "That command is already enabled!").
 	Set("COMMAND_DISABLE_ALREADY", "That command is already disabled!").
 	Set("COMMAND_ENABLE_SUCCESS", "Successfully enabled the command **%s**").
