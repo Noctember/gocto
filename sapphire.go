@@ -3,8 +3,8 @@ package sapphire
 
 import (
 	"fmt"
-	"github.com/bwmarrin/discordgo"
 	"github.com/dustin/go-humanize"
+	"github.com/jonas747/discordgo"
 	"os"
 	"os/signal"
 	"runtime"
@@ -33,9 +33,9 @@ type Bot struct {
 	CommandsRan      int                 // Commands ran.
 	Monitors         map[string]*Monitor // Map of monitors.
 	aliases          map[string]string
-	CommandCooldowns map[string]map[string]time.Time
-	CommandEdits     map[string]string
-	OwnerID          string               // Bot owner's ID (default: fetched from application info)
+	CommandCooldowns map[int64]map[string]time.Time
+	CommandEdits     map[int64]int64
+	OwnerID          int64                // Bot owner's ID (default: fetched from application info)
 	InvitePerms      int                  // Permissions bits to use for the invite link. (default: 3072)
 	Languages        map[string]*Language // Map of languages.
 	DefaultLocale    *Language            // Default locale to fallback. (default: en-US)
@@ -70,8 +70,8 @@ func New(s *discordgo.Session) *Bot {
 		Languages:        make(map[string]*Language),
 		CommandsRan:      0,
 		InvitePerms:      3072,
-		CommandCooldowns: make(map[string]map[string]time.Time),
-		CommandEdits:     make(map[string]string),
+		CommandCooldowns: make(map[int64]map[string]time.Time),
+		CommandEdits:     make(map[int64]int64),
 		Monitors:         make(map[string]*Monitor),
 		CommandTyping:    true,
 		sweepTicker:      time.NewTicker(1 * time.Hour),
@@ -92,8 +92,8 @@ func New(s *discordgo.Session) *Bot {
 		// and is not too common for users to even notice it, same for edits.
 		go func() {
 			<-bot.sweepTicker.C
-			bot.CommandCooldowns = make(map[string]map[string]time.Time)
-			bot.CommandEdits = make(map[string]string)
+			bot.CommandCooldowns = make(map[int64]map[string]time.Time)
+			bot.CommandEdits = make(map[int64]int64)
 		}()
 
 		// TODO: for some reason it says bots cannot use this endpoint, i've seen a similar usecase before
@@ -234,7 +234,7 @@ func (bot *Bot) AddMonitor(m *Monitor) *Bot {
 // The second value is if user can't run then it will be the amount of seconds
 // to wait before being able to.
 // Note this function assumes the user will run the command and will place the user on cooldown if it isn't already.
-func (bot *Bot) CheckCooldown(userID, command string, cooldownSec int) (bool, int) {
+func (bot *Bot) CheckCooldown(userID int64, command string, cooldownSec int) (bool, int) {
 	if cooldownSec == 0 {
 		return true, 0
 	}
@@ -282,7 +282,12 @@ func (bot *Bot) LoadBuiltins() *Bot {
 		if err != nil {
 			return
 		}
-		ctx.EditLocale(msg, "COMMAND_PING_PONG", bottime.Sub(usertime).Milliseconds(), ctx.Session.HeartbeatLatency().Milliseconds())
+		taken := time.Duration(time.Now().UnixNano() - bottime.UnixNano())
+		started := time.Now()
+		ctx.EditLocale(msg, "COMMAND_PING_PONG", taken.String(), -1)
+		httpPing := time.Since(started)
+
+		ctx.EditLocale(msg, "COMMAND_PING_PONG", bottime.Sub(usertime).Nanoseconds(), httpPing.String())
 	}).SetDescription("Pong! Responds with Bot latency."))
 
 	bot.AddCommand(NewCommand("help", "General", func(ctx *CommandContext) {
@@ -426,8 +431,8 @@ func (bot *Bot) LoadBuiltins() *Bot {
 		runtime.ReadMemStats(before)
 		// Additionally we will collect extra garbage by freeing these stuff aswell, since this command is meant to be ran
 		// in memory critical situations losing them doesn't hurt at all.
-		bot.CommandCooldowns = make(map[string]map[string]time.Time)
-		bot.CommandEdits = make(map[string]string)
+		bot.CommandCooldowns = make(map[int64]map[string]time.Time)
+		bot.CommandEdits = make(map[int64]int64)
 		runtime.GC()
 		after := &runtime.MemStats{}
 		runtime.ReadMemStats(after)

@@ -9,7 +9,7 @@ package main
 
 import (
   "github.com/sapphire-cord/sapphire"
-  "github.com/bwmarrin/discordgo"
+  "github.com/jonas747/discordgo"
 )
 
 func main() {

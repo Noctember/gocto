@@ -1,7 +1,7 @@
 package sapphire
 
 import (
-	"github.com/bwmarrin/discordgo"
+	"github.com/jonas747/discordgo"
 )
 
 // Utility to help calculate permissions. Since discordgo is too damn low-level

@@ -2,7 +2,7 @@ package sapphire
 
 import (
 	"fmt"
-	"github.com/bwmarrin/discordgo"
+	"github.com/jonas747/discordgo"
 	"regexp"
 	"strconv"
 )
@@ -101,14 +101,15 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 		match := MentionRegex.FindStringSubmatch(raw)
 
 		if raw == "^" {
-			msg, _ := ctx.Session.ChannelMessages(ctx.Channel.ID, 1, ctx.Message.ID, "", "")
+			msg, _ := ctx.Session.ChannelMessages(ctx.Channel.ID, 1, ctx.Message.ID, 0, 0)
 			return arg(ctx.Member(msg[0].Author.ID)), nil
 		}
 
 		if len(match) < 2 {
 			return nil, fmt.Errorf("**%s** must be a valid member mention or ID.", tag.Name)
 		}
-		member := ctx.Member(match[1])
+		i, _ := strconv.ParseInt(match[1], 10, 64)
+		member := ctx.Member(i)
 		if member == nil {
 			return nil, fmt.Errorf("That member cannot be found in this server.")
 		}
@@ -117,7 +118,7 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 		match := MentionRegex.FindStringSubmatch(raw)
 
 		if raw == "^" {
-			msg, _ := ctx.Session.ChannelMessages(ctx.Channel.ID, 1, ctx.Message.ID, "", "")
+			msg, _ := ctx.Session.ChannelMessages(ctx.Channel.ID, 1, ctx.Message.ID, 0, 0)
 			user, _ := ctx.FetchUser(msg[0].Author.ID)
 			return arg(user), nil
 		}
@@ -125,8 +126,8 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 		if len(match) < 2 {
 			return nil, fmt.Errorf("**%s** must be a valid user mention or ID.", tag.Name)
 		}
-
-		user, _ := ctx.FetchUser(match[1])
+		i, _ := strconv.ParseInt(match[1], 10, 64)
+		user, _ := ctx.FetchUser(i)
 
 		if user == nil {
 			return nil, fmt.Errorf("That user cannot be found.")
@@ -141,8 +142,8 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 		if len(match) < 2 {
 			return nil, fmt.Errorf("**%s** must be a valid channel mention or ID.", tag.Name)
 		}
-
-		channel, _ := ctx.Session.State.Channel(match[1])
+		i, _ := strconv.ParseInt(match[1], 10, 64)
+		channel, _ := ctx.Session.State.Channel(i)
 
 		if channel == nil {
 			return nil, fmt.Errorf("That channel cannot be found.")

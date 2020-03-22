@@ -3,8 +3,9 @@ package sapphire
 import (
 	"fmt"
 	"github.com/Noctember/sapphire/helpers"
-	"github.com/bwmarrin/discordgo"
+	"github.com/jonas747/discordgo"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -92,7 +93,7 @@ func monitorHandler(bot *Bot, m *discordgo.Message, edit bool) {
 		}
 
 		var guild *discordgo.Guild = nil
-		if m.GuildID != "" {
+		if m.GuildID != 0 {
 			g, err := bot.Session.State.Guild(m.GuildID)
 			if err != nil {
 				continue
@@ -112,7 +113,7 @@ func monitorHandler(bot *Bot, m *discordgo.Message, edit bool) {
 			continue
 		}
 
-		if m.WebhookID != "" && monitor.IgnoreWebhooks {
+		if m.WebhookID != 0 && monitor.IgnoreWebhooks {
 			continue
 		}
 
@@ -163,8 +164,8 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 			// Could've used regex here but it adds more complexity of compiling it at a proper time
 			// Because we will need the ID so we would need to delay it until ready.
 			// Let's just simplify it for now.
-			mPrefix := "<@" + bot.Session.State.User.ID + "> "
-			mNickPrefix := "<@!" + bot.Session.State.User.ID + "> "
+			mPrefix := "<@" + strconv.FormatInt(bot.Session.State.User.ID, 10) + "> "
+			mNickPrefix := "<@!" + strconv.FormatInt(bot.Session.State.User.ID, 10) + "> "
 			if strings.HasPrefix(ctx.Message.Content, mPrefix) {
 				prefix = mPrefix
 			} else if strings.HasPrefix(ctx.Message.Content, mNickPrefix) {
@@ -256,7 +257,7 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 		return
 	}
 
-	if cmd.GuildOnly && ctx.Message.GuildID == "" {
+	if cmd.GuildOnly && ctx.Message.GuildID == 0 {
 		cctx.ReplyLocale("COMMAND_GUILD_ONLY")
 		return
 	}

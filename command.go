@@ -2,7 +2,7 @@ package sapphire
 
 import (
 	"fmt"
-	"github.com/bwmarrin/discordgo"
+	"github.com/jonas747/discordgo"
 	"io"
 	"runtime"
 	"strings"
@@ -419,7 +419,7 @@ func (ctx *CommandContext) ParseArgs() bool {
 }
 
 // User gets a user by id, returns nil if not found.
-func (ctx *CommandContext) User(id string) *discordgo.User {
+func (ctx *CommandContext) User(id int64) *discordgo.User {
 	for _, guild := range ctx.Session.State.Guilds {
 		if member, err := ctx.Session.State.Member(guild.ID, id); err == nil {
 			return member.User
@@ -429,7 +429,7 @@ func (ctx *CommandContext) User(id string) *discordgo.User {
 }
 
 // FetchUser searches the cache for the given user id and if not found, attempts to fetch it from the API.
-func (ctx *CommandContext) FetchUser(id string) (*discordgo.User, error) {
+func (ctx *CommandContext) FetchUser(id int64) (*discordgo.User, error) {
 	// Try the cache first.
 	user := ctx.User(id)
 
@@ -442,7 +442,7 @@ func (ctx *CommandContext) FetchUser(id string) (*discordgo.User, error) {
 }
 
 // Member gets a member by id from the current guild, returns nil if not found.
-func (ctx *CommandContext) Member(id string) *discordgo.Member {
+func (ctx *CommandContext) Member(id int64) *discordgo.Member {
 	if ctx.Guild == nil {
 		return nil
 	}

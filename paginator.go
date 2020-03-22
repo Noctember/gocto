@@ -2,7 +2,7 @@ package sapphire
 
 import (
 	"fmt"
-	"github.com/bwmarrin/discordgo"
+	"github.com/jonas747/discordgo"
 	"sync"
 	"time"
 )
@@ -19,12 +19,12 @@ const (
 type Paginator struct {
 	Running   bool                      // If we are running or not.
 	Session   *discordgo.Session        // The discordgo session.
-	ChannelID string                    // The ID of the channel we are on.
+	ChannelID int64                     // The ID of the channel we are on.
 	Template  func() *Embed             // Base template that is passed to AddPage calls.
 	Pages     []*discordgo.MessageEmbed // Embeds for all pages.
 	index     int                       // Index of current page, Use GetIndex() which aquires the lock.
 	Message   *discordgo.Message        // The sent message to be edited as we go
-	AuthorID  string                    // The user that can control this paginator.
+	AuthorID  int64                     // The user that can control this paginator.
 	StopChan  chan bool                 // Stop paginator by sending to this channel.
 	Extra     string
 	Timeout   time.Duration // Duration of when the paginator expires. (default: 5minutes)
@@ -35,7 +35,7 @@ type Paginator struct {
 // This is the raw one if you have special needs, it's preferred to use NewPaginatorForContext
 // Session is the discordgo sesssion, channel is the ID of the channel to start the paginator.
 // Author is the id of the user to listen to everyone else's reaction is ignored, pass "" to allow everyone.
-func NewPaginator(session *discordgo.Session, channel, author string) *Paginator {
+func NewPaginator(session *discordgo.Session, channel, author int64) *Paginator {
 	return &Paginator{
 		Session:   session,
 		ChannelID: channel,
@@ -201,7 +201,7 @@ func (p *Paginator) Run() {
 		if r.MessageID != p.Message.ID {
 			continue
 		}
-		if p.AuthorID != "" && r.UserID != p.AuthorID {
+		if p.AuthorID != 0 && r.UserID != p.AuthorID {
 			continue
 		}
 
