@@ -269,16 +269,9 @@ func (bot *Bot) LoadBuiltins() *Bot {
 	// To keep things simple all commands are declared here, we shouldn't need that much of builtins anyway.
 	// And to keep the code easier to jump around this function is always the last.
 	bot.AddCommand(NewCommand("ping", "General", func(ctx *CommandContext) {
+		bottime := time.Now()
 		msg, err := ctx.ReplyLocale("COMMAND_PING")
 		// Should never happen but if it did, avoid panics.
-		if err != nil {
-			return
-		}
-		usertime, err := ctx.Message.Timestamp.Parse()
-		if err != nil {
-			return
-		}
-		bottime, err := msg.Timestamp.Parse()
 		if err != nil {
 			return
 		}
@@ -287,7 +280,7 @@ func (bot *Bot) LoadBuiltins() *Bot {
 		ctx.EditLocale(msg, "COMMAND_PING_PONG", taken.String(), -1)
 		httpPing := time.Since(started)
 
-		ctx.EditLocale(msg, "COMMAND_PING_PONG", bottime.Sub(usertime).String(), httpPing.String())
+		ctx.EditLocale(msg, "COMMAND_PING_PONG", taken.String(), httpPing.String())
 	}).SetDescription("Pong! Responds with Bot latency."))
 
 	bot.AddCommand(NewCommand("help", "General", func(ctx *CommandContext) {
