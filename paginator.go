@@ -29,6 +29,7 @@ type Paginator struct {
 	Extra     string
 	Timeout   time.Duration // Duration of when the paginator expires. (default: 5minutes)
 	lock      sync.Mutex
+	delete    bool
 }
 
 // NewPaginator creates a new paginator and returns it.
@@ -47,6 +48,7 @@ func NewPaginator(session *discordgo.Session, channel, author int64) *Paginator 
 		Timeout:   time.Minute * 5,
 		Extra:     "",
 		Template:  func() *Embed { return NewEmbed() },
+		delete:    false,
 	}
 }
 
@@ -64,6 +66,10 @@ func (p *Paginator) GetIndex() int {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	return p.index
+}
+
+func (p *Paginator) Delete() {
+	p.delete = true
 }
 
 // Adds a page, takes a function that recieves the copy of embed template
@@ -195,6 +201,7 @@ func (p *Paginator) Run() {
 			p.Session.MessageReactionsRemoveAll(p.ChannelID, p.Message.ID)
 			return
 		case <-p.StopChan:
+			p.Session.ChannelMessageDelete(p.ChannelID, p.Message.ID)
 			return
 		}
 
@@ -209,7 +216,14 @@ func (p *Paginator) Run() {
 			switch r.Emoji.Name {
 			case EmojiStop:
 				p.Stop()
-				p.Session.MessageReactionsRemoveAll(p.ChannelID, p.Message.ID)
+				err := p.Session.MessageReactionsRemoveAll(p.ChannelID, p.Message.ID)
+				if err != nil {
+					p.Session.MessageReactionRemoveMe(p.ChannelID, p.Message.ID, EmojiFirst)
+					p.Session.MessageReactionRemoveMe(p.ChannelID, p.Message.ID, EmojiLeft)
+					p.Session.MessageReactionRemoveMe(p.ChannelID, p.Message.ID, EmojiStop)
+					p.Session.MessageReactionRemoveMe(p.ChannelID, p.Message.ID, EmojiRight)
+					p.Session.MessageReactionRemoveMe(p.ChannelID, p.Message.ID, EmojiLast)
+				}
 			case EmojiRight:
 				p.NextPage()
 			case EmojiLeft:
