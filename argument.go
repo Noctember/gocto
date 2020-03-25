@@ -29,6 +29,9 @@ func (arg *Argument) AsString() string {
 func (arg *Argument) AsInt() int {
 	return arg.Value.(int)
 }
+func (arg *Argument) AsInt64() int64 {
+	return arg.Value.(int64)
+}
 
 func (arg *Argument) AsFloat() float64 {
 	return arg.Value.(float64)
@@ -95,7 +98,7 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 	case "number":
 		fallthrough
 	case "int":
-		val, err := strconv.Atoi(raw)
+		val, err := strconv.ParseInt(raw, 10, 64)
 		return arg(val), err
 	case "member":
 		match := MentionRegex.FindStringSubmatch(raw)
