@@ -243,12 +243,10 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 
 	// Validations.
 	if !cmd.Enabled {
-		cctx.ReplyLocale("COMMAND_DISABLED")
 		return
 	}
 
 	if cmd.OwnerOnly && ctx.Author.ID != bot.OwnerID {
-		cctx.ReplyLocale("COMMAND_OWNER_ONLY")
 		return
 	}
 
