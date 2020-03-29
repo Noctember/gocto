@@ -386,7 +386,7 @@ func (bot *Bot) LoadBuiltins() *Bot {
 	}).SetDescription("Stats for nerds.").AddAliases("botstats", "info"))
 
 	bot.AddCommand(NewCommand("invite", "General", func(ctx *CommandContext) {
-		ctx.ReplyLocale("COMMAND_INVITE", fmt.Sprintf("https://discordapp.com/oauth2/authorize?client_id=%s&permissions=%d&scope=bot",
+		ctx.ReplyLocale("COMMAND_INVITE", fmt.Sprintf("https://discordapp.com/oauth2/authorize?client_id=%d&permissions=%d&scope=bot",
 			ctx.Session.State.User.ID, bot.InvitePerms))
 	}).SetDescription("Invite me to your server!").AddAliases("inv"))
 
