@@ -105,7 +105,7 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 		match := MentionRegex.FindStringSubmatch(raw)
 
 		if raw == "^" {
-			msg, _ := ctx.Client.GetMessages(context.Background(), ctx.Channel.ID, &disgord.GetMessagesParams{Limit: 1, After: ctx.Message.ID})
+			msg, _ := ctx.Client.GetMessages(context.Background(), ctx.Channel.ID, &disgord.GetMessagesParams{Limit: 1, Before: ctx.Message.ID})
 			return arg(ctx.Member(int64(msg[0].Author.ID))), nil
 		}
 
@@ -122,7 +122,7 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 		match := MentionRegex.FindStringSubmatch(raw)
 
 		if raw == "^" {
-			msg, _ := ctx.Client.GetMessages(context.Background(), ctx.Channel.ID, &disgord.GetMessagesParams{Limit: 1, After: ctx.Message.ID})
+			msg, _ := ctx.Client.GetMessages(context.Background(), ctx.Channel.ID, &disgord.GetMessagesParams{Limit: 1, Before: ctx.Message.ID})
 			user, _ := ctx.FetchUser(int64(msg[0].Author.ID))
 			return arg(user), nil
 		}
