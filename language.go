@@ -1,4 +1,4 @@
-package sapphire
+package gocto
 
 import (
 	"fmt"
@@ -9,12 +9,10 @@ type Language struct {
 	Keys map[string]string
 }
 
-// NewLanguage creates a new language with the specified name.
 func NewLanguage(name string) *Language {
 	return &Language{Name: name, Keys: make(map[string]string)}
 }
 
-// Merge merges the keys from the other language
 func (l *Language) Merge(other *Language) *Language {
 	for k, v := range other.Keys {
 		l.Keys[k] = v

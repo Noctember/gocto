@@ -1,97 +1,97 @@
 package helpers
 
 import (
-	"github.com/jonas747/discordgo"
+	"github.com/andersfylling/disgord"
 	"strings"
 )
 
-func GetPermissionsText(permissions int) string {
+func GetPermissionsText(permissions disgord.PermissionBit) string {
 	if permissions == 0 {
 		return "/"
 	}
 	var result string
-	if permissions&discordgo.PermissionAdministrator == discordgo.PermissionAdministrator {
+	if permissions&disgord.PermissionAdministrator == disgord.PermissionAdministrator {
 		result += "Administrator, "
 	}
-	if permissions&discordgo.PermissionViewAuditLogs == discordgo.PermissionViewAuditLogs {
+	if permissions&disgord.PermissionViewAuditLogs == disgord.PermissionViewAuditLogs {
 		result += "View Audit Log, "
 	}
-	if permissions&discordgo.PermissionManageServer == discordgo.PermissionManageServer {
+	if permissions&disgord.PermissionManageServer == disgord.PermissionManageServer {
 		result += "Manage Server, "
 	}
-	if permissions&discordgo.PermissionManageRoles == discordgo.PermissionManageRoles {
+	if permissions&disgord.PermissionManageRoles == disgord.PermissionManageRoles {
 		result += "Manage Roles, "
 	}
-	if permissions&discordgo.PermissionManageChannels == discordgo.PermissionManageChannels {
+	if permissions&disgord.PermissionManageChannels == disgord.PermissionManageChannels {
 		result += "Manage Channels, "
 	}
-	if permissions&discordgo.PermissionKickMembers == discordgo.PermissionKickMembers {
+	if permissions&disgord.PermissionKickMembers == disgord.PermissionKickMembers {
 		result += "Kick Members, "
 	}
-	if permissions&discordgo.PermissionBanMembers == discordgo.PermissionBanMembers {
+	if permissions&disgord.PermissionBanMembers == disgord.PermissionBanMembers {
 		result += "Ban Members, "
 	}
-	if permissions&discordgo.PermissionCreateInstantInvite == discordgo.PermissionCreateInstantInvite {
+	if permissions&disgord.PermissionCreateInstantInvite == disgord.PermissionCreateInstantInvite {
 		result += "Create Instant Invite, "
 	}
-	if permissions&discordgo.PermissionChangeNickname == discordgo.PermissionChangeNickname {
+	if permissions&disgord.PermissionChangeNickname == disgord.PermissionChangeNickname {
 		result += "Change Nickname, "
 	}
-	if permissions&discordgo.PermissionManageNicknames == discordgo.PermissionManageNicknames {
+	if permissions&disgord.PermissionManageNicknames == disgord.PermissionManageNicknames {
 		result += "Manage Nicknames, "
 	}
-	if permissions&discordgo.PermissionManageEmojis == discordgo.PermissionManageEmojis {
+	if permissions&disgord.PermissionManageEmojis == disgord.PermissionManageEmojis {
 		result += "Manage Emojis, "
 	}
-	if permissions&discordgo.PermissionManageWebhooks == discordgo.PermissionManageWebhooks {
+	if permissions&disgord.PermissionManageWebhooks == disgord.PermissionManageWebhooks {
 		result += "Manage Webhooks, "
 	}
-	if permissions&discordgo.PermissionReadMessages == discordgo.PermissionReadMessages {
+	if permissions&disgord.PermissionReadMessages == disgord.PermissionReadMessages {
 		result += "View Channels, "
 	}
-	if permissions&discordgo.PermissionSendMessages == discordgo.PermissionSendMessages {
+	if permissions&disgord.PermissionSendMessages == disgord.PermissionSendMessages {
 		result += "Send Messages, "
 	}
-	if permissions&discordgo.PermissionSendTTSMessages == discordgo.PermissionSendTTSMessages {
+	if permissions&disgord.PermissionSendTTSMessages == disgord.PermissionSendTTSMessages {
 		result += "Send TTS Messages, "
 	}
-	if permissions&discordgo.PermissionManageMessages == discordgo.PermissionManageMessages {
+	if permissions&disgord.PermissionManageMessages == disgord.PermissionManageMessages {
 		result += "Manage Messages, "
 	}
-	if permissions&discordgo.PermissionEmbedLinks == discordgo.PermissionEmbedLinks {
+	if permissions&disgord.PermissionEmbedLinks == disgord.PermissionEmbedLinks {
 		result += "Embed Links, "
 	}
-	if permissions&discordgo.PermissionAttachFiles == discordgo.PermissionAttachFiles {
+	if permissions&disgord.PermissionAttachFiles == disgord.PermissionAttachFiles {
 		result += "Attach Files, "
 	}
-	if permissions&discordgo.PermissionReadMessageHistory == discordgo.PermissionReadMessageHistory {
+	if permissions&disgord.PermissionReadMessageHistory == disgord.PermissionReadMessageHistory {
 		result += "Read Message History, "
 	}
-	if permissions&discordgo.PermissionMentionEveryone == discordgo.PermissionMentionEveryone {
+	if permissions&disgord.PermissionMentionEveryone == disgord.PermissionMentionEveryone {
 		result += "Mention Everyone, "
 	}
-	if permissions&discordgo.PermissionUseExternalEmojis == discordgo.PermissionUseExternalEmojis {
+	if permissions&disgord.PermissionUseExternalEmojis == disgord.PermissionUseExternalEmojis {
 		result += "Use External Emojis, "
 	}
-	if permissions&discordgo.PermissionAddReactions == discordgo.PermissionAddReactions {
+	if permissions&disgord.PermissionAddReactions == disgord.PermissionAddReactions {
 		result += "Add Reactions, "
 	}
-	if permissions&discordgo.PermissionVoiceConnect == discordgo.PermissionVoiceConnect {
+	if permissions&disgord.PermissionVoiceConnect == disgord.PermissionVoiceConnect {
 		result += "Voice Connect, "
 	}
-	if permissions&discordgo.PermissionVoiceSpeak == discordgo.PermissionVoiceSpeak {
+	if permissions&disgord.PermissionVoiceSpeak == disgord.PermissionVoiceSpeak {
 		result += "Voice Speak, "
 	}
-	if permissions&discordgo.PermissionVoiceMuteMembers == discordgo.PermissionVoiceMuteMembers {
+	if permissions&disgord.PermissionVoiceMuteMembers == disgord.PermissionVoiceMuteMembers {
 		result += "Voice Mute Members, "
 	}
-	if permissions&discordgo.PermissionVoiceDeafenMembers == discordgo.PermissionVoiceDeafenMembers {
+	if permissions&disgord.PermissionVoiceDeafenMembers == disgord.PermissionVoiceDeafenMembers {
 		result += "Voice Deafen Members, "
 	}
-	if permissions&discordgo.PermissionVoiceMoveMembers == discordgo.PermissionVoiceMoveMembers {
+	if permissions&disgord.PermissionVoiceMoveMembers == disgord.PermissionVoiceMoveMembers {
 		result += "Voice Move Members, "
 	}
-	if permissions&discordgo.PermissionVoiceUseVAD == discordgo.PermissionVoiceUseVAD {
+	if permissions&disgord.PermissionVoiceUseVAD == disgord.PermissionVoiceUseVAD {
 		result += "Voice Use Voice Acivity, "
 	}
 	result = strings.TrimRight(result, ", ")

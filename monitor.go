@@ -1,25 +1,25 @@
-package sapphire
+package gocto
 
 import (
+	"context"
 	"fmt"
-	"github.com/Noctember/sapphire/helpers"
-	"github.com/jonas747/discordgo"
+	"github.com/Noctember/gocto/helpers"
+	"github.com/andersfylling/disgord"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
 type MonitorHandler func(bot *Bot, ctx *MonitorContext)
 
 type Monitor struct {
-	Name           string         // Name of the monitor
-	Enabled        bool           // Wether the monitor is enabled.
-	Run            MonitorHandler // The actual handler function.
-	GuildOnly      bool           // Wether this monitor should only run on guilds. (default: false)
-	IgnoreWebhooks bool           // Wether to ignore messages sent by webhooks (default: true)
-	IgnoreBots     bool           // Wether to ignore messages sent by bots (default: true)
-	IgnoreSelf     bool           // Wether to ignore the bot itself. (default: true)
-	IgnoreEdits    bool           // Wether to ignore edited messages. (default: true)
+	Name           string
+	Enabled        bool
+	Run            MonitorHandler
+	GuildOnly      bool
+	IgnoreWebhooks bool
+	IgnoreBots     bool
+	IgnoreSelf     bool
+	IgnoreEdits    bool
 }
 
 func (m *Monitor) AllowBots() *Monitor {
@@ -61,22 +61,21 @@ func NewMonitor(name string, monitor MonitorHandler) *Monitor {
 }
 
 type MonitorContext struct {
-	Message *discordgo.Message
-	Channel *discordgo.Channel
-	Session *discordgo.Session
-	Author  *discordgo.User // Alias of Context.Message.Author
+	Message *disgord.Message
+	Channel *disgord.Channel
+	Client  *disgord.Client
+	Author  *disgord.User
 	Monitor *Monitor
-	Guild   *discordgo.Guild
+	Guild   *disgord.Guild
 	Bot     *Bot
 }
 
-func monitorHandler(bot *Bot, m *discordgo.Message, edit bool) {
+func monitorHandler(bot *Bot, m *disgord.Message, edit bool) {
 
 	if m.Author == nil {
-		return // for message edits sometimes author is nil, in practice it works fine when we ignore those.
+		return
 	}
 
-	// Catch panics from monitors.
 	defer func() {
 		if err := recover(); err != nil {
 			bot.ErrorHandler(bot, err)
@@ -92,9 +91,9 @@ func monitorHandler(bot *Bot, m *discordgo.Message, edit bool) {
 			continue
 		}
 
-		var guild *discordgo.Guild = nil
+		var guild *disgord.Guild = nil
 		if m.GuildID != 0 {
-			g, err := bot.Session.State.Guild(m.GuildID)
+			g, err := bot.Client.GetGuild(context.Background(), m.GuildID)
 			if err != nil {
 				continue
 			}
@@ -105,7 +104,7 @@ func monitorHandler(bot *Bot, m *discordgo.Message, edit bool) {
 			continue
 		}
 
-		if m.Author.ID == bot.Session.State.User.ID && monitor.IgnoreSelf {
+		if m.Author.ID == bot.BotID && monitor.IgnoreSelf {
 			continue
 		}
 
@@ -117,13 +116,13 @@ func monitorHandler(bot *Bot, m *discordgo.Message, edit bool) {
 			continue
 		}
 
-		channel, err := bot.Session.State.Channel(m.ChannelID)
+		channel, err := bot.Client.GetChannel(context.Background(), m.ChannelID)
 		if err != nil {
 			continue
 		}
 
 		go monitor.Run(bot, &MonitorContext{
-			Session: bot.Session,
+			Client:  bot.Client,
 			Message: m,
 			Author:  m.Author,
 			Channel: channel,
@@ -134,38 +133,31 @@ func monitorHandler(bot *Bot, m *discordgo.Message, edit bool) {
 	}
 }
 
-func monitorListener(bot *Bot) func(s *discordgo.Session, m *discordgo.MessageCreate) {
-	return func(s *discordgo.Session, m *discordgo.MessageCreate) {
+func monitorListener(bot *Bot) func(s *disgord.Session, m disgord.MessageCreate) {
+	return func(s *disgord.Session, m disgord.MessageCreate) {
 		monitorHandler(bot, m.Message, false)
 	}
 }
 
-func monitorEditListener(bot *Bot) func(s *discordgo.Session, m *discordgo.MessageUpdate) {
-	return func(s *discordgo.Session, m *discordgo.MessageUpdate) {
+func monitorEditListener(bot *Bot) func(s *disgord.Session, m disgord.MessageUpdate) {
+	return func(s *disgord.Session, m disgord.MessageUpdate) {
 		monitorHandler(bot, m.Message, true)
 	}
 }
 
-// The regexp used to parse command flags.
-// Taken from Klasa https://github.com/dirigeants/klasa
 var flagsRegex = regexp.MustCompile("(?:--|—)(\\w[\\w-]+)(?:=(?:[\"]((?:[^\"\\\\]|\\\\.)*)[\"]|[']((?:[^'\\\\]|\\\\.)*)[']|[“”]((?:[^“”\\\\]|\\\\.)*)[“”]|[‘’]((?:[^‘’\\\\]|\\\\.)*)[‘’]|([\\w-]+)))?")
 var delim = regexp.MustCompile("(\\s)(?:\\s)+")
 
-// This is the builtin monitor responsible for running commands.
 func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 	if bot.ListHandler(bot, ctx.Message) {
 		return
 	}
 
-	prefix := bot.Prefix(bot, ctx.Message, ctx.Channel.Type == discordgo.ChannelTypeDM)
+	prefix := bot.Prefix(bot, ctx.Message, ctx.Channel.Type == disgord.ChannelTypeDM)
 	if !strings.HasPrefix(ctx.Message.Content, prefix) {
 		if bot.MentionPrefix {
-			// Check mention prefix.
-			// Could've used regex here but it adds more complexity of compiling it at a proper time
-			// Because we will need the ID so we would need to delay it until ready.
-			// Let's just simplify it for now.
-			mPrefix := "<@" + strconv.FormatInt(bot.Session.State.User.ID, 10) + "> "
-			mNickPrefix := "<@!" + strconv.FormatInt(bot.Session.State.User.ID, 10) + "> "
+			mPrefix := "<@" + bot.BotID.String() + "> "
+			mNickPrefix := "<@!" + bot.BotID.String() + "> "
 			if strings.HasPrefix(ctx.Message.Content, mPrefix) {
 				prefix = mPrefix
 			} else if strings.HasPrefix(ctx.Message.Content, mNickPrefix) {
@@ -179,8 +171,6 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 		}
 	}
 
-	// Parsing flags
-	// It fills the flags maps and strips them out of the original content.
 	flags := make(map[string]string)
 	content := strings.Trim(delim.ReplaceAllString(flagsRegex.ReplaceAllStringFunc(ctx.Message.Content, func(m string) string {
 		sub := flagsRegex.FindStringSubmatch(m)
@@ -213,14 +203,12 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 		return
 	}
 
-	// Start constructing a context early so we can call reply and apply the editing rules.
-	// Thanks to monitors most of our fields are filled in our monitor context already so we just redirect them.
 	cctx := &CommandContext{
 		Bot:         bot,
 		Command:     cmd,
 		Message:     ctx.Message,
 		Channel:     ctx.Channel,
-		Session:     ctx.Session,
+		Client:      ctx.Client,
 		Author:      ctx.Author,
 		RawArgs:     args,
 		Prefix:      prefix,
@@ -229,7 +217,7 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 		InvokedName: input,
 	}
 
-	lang := bot.Language(bot, ctx.Message, ctx.Channel.Type == discordgo.ChannelTypeDM)
+	lang := bot.Language(bot, ctx.Message, ctx.Channel.Type == disgord.ChannelTypeDM)
 	locale, ok := bot.Languages[lang]
 
 	// Shouldn't happen unless the user made a mistake returning an invalid string, let's help them find the problem.
@@ -246,12 +234,12 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 		return
 	}
 
-	if cmd.OwnerOnly && ctx.Author.ID != bot.OwnerID {
+	if cmd.OwnerOnly && ctx.Author.ID != bot.Owner {
 		return
 	}
 
-	if cmd.RequiredPermissions != 0 && !PermissionsForMember(ctx.Guild, cctx.Member(ctx.Author.ID)).Has(cmd.RequiredPermissions) {
-		cctx.ReplyLocale("COMMAND_MISSING_PERMS", helpers.GetPermissionsText(cmd.RequiredPermissions))
+	if cmd.RequiredPermissions != 0 && !PermissionsForMember(ctx.Guild, cctx.Member(int64(ctx.Author.ID))).Has(cmd.RequiredPermissions) {
+		cctx.ReplyLocale("COMMAND_MISSING_PERMS", helpers.GetPermissionsText(disgord.PermissionBit(cmd.RequiredPermissions)))
 		return
 	}
 
@@ -267,10 +255,10 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 	}
 
 	if bot.CommandTyping {
-		ctx.Session.ChannelTyping(ctx.Message.ChannelID)
+		ctx.Client.TriggerTypingIndicator(context.Background(), ctx.Message.ChannelID)
 	}
 
-	canRun, after := bot.CheckCooldown(ctx.Author.ID, cmd.Name, cmd.Cooldown)
+	canRun, after := bot.CheckCooldown(int64(ctx.Author.ID), cmd.Name, cmd.Cooldown)
 	if !canRun {
 		cctx.ReplyLocale("COMMAND_COOLDOWN", after)
 		return
@@ -280,7 +268,7 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 
 	defer func() {
 		if cmd.DeleteAfter {
-			ctx.Session.ChannelMessageDelete(ctx.Channel.ID, ctx.Message.ID)
+			ctx.Client.DeleteMessage(context.Background(), ctx.Channel.ID, ctx.Message.ID)
 		}
 		if err := recover(); err != nil {
 			bot.ErrorHandler(bot, &CommandError{Err: err, Context: cctx})

@@ -1,63 +1,57 @@
-package sapphire
+package gocto
 
 import (
+	"context"
 	"fmt"
-	"github.com/jonas747/discordgo"
+	"github.com/andersfylling/disgord"
 	"sync"
 	"time"
 )
 
-// Emoji constants.
 const (
-	EmojiLeft  = "◀️" // Go left, -1 page.
-	EmojiRight = "▶️" // Go right, +1 page.
-	EmojiFirst = "⏪"  // Go to first page.
-	EmojiLast  = "⏩"  // Go to last page.
-	EmojiStop  = "⏹️" // Stop the paginator.
+	EmojiLeft  = "◀️"
+	EmojiRight = "▶️"
+	EmojiFirst = "⏪"
+	EmojiLast  = "⏩"
+	EmojiStop  = "⏹️"
 )
 
 type Paginator struct {
-	Running   bool                      // If we are running or not.
-	Session   *discordgo.Session        // The discordgo session.
-	ChannelID int64                     // The ID of the channel we are on.
-	Template  func() *Embed             // Base template that is passed to AddPage calls.
-	Pages     []*discordgo.MessageEmbed // Embeds for all pages.
-	index     int                       // Index of current page, Use GetIndex() which aquires the lock.
-	Message   *discordgo.Message        // The sent message to be edited as we go
-	AuthorID  int64                     // The user that can control this paginator.
-	StopChan  chan bool                 // Stop paginator by sending to this channel.
-	Extra     string
-	Timeout   time.Duration // Duration of when the paginator expires. (default: 5minutes)
-	lock      sync.Mutex
-	delete    bool
+	Running  bool
+	Client   *disgord.Client
+	Channel  disgord.Snowflake
+	Template func() *Embed
+	Pages    []*disgord.Embed
+	index    int
+	Message  *disgord.Message
+	AuthorID *disgord.Snowflake
+	StopChan chan bool
+	Extra    string
+	Timeout  time.Duration
+	lock     sync.Mutex
+	delete   bool
 }
 
-// NewPaginator creates a new paginator and returns it.
-// This is the raw one if you have special needs, it's preferred to use NewPaginatorForContext
-// Session is the discordgo sesssion, channel is the ID of the channel to start the paginator.
-// Author is the id of the user to listen to everyone else's reaction is ignored, pass "" to allow everyone.
-func NewPaginator(session *discordgo.Session, channel, author int64) *Paginator {
+func NewPaginator(client *disgord.Client, channel, author disgord.Snowflake) *Paginator {
 	return &Paginator{
-		Session:   session,
-		ChannelID: channel,
-		Running:   false,
-		index:     0,
-		Message:   nil,
-		AuthorID:  author,
-		StopChan:  make(chan bool),
-		Timeout:   time.Minute * 5,
-		Extra:     "",
-		Template:  func() *Embed { return NewEmbed() },
-		delete:    false,
+		Client:   client,
+		Channel:  channel,
+		Running:  false,
+		index:    0,
+		Message:  nil,
+		AuthorID: &author,
+		StopChan: make(chan bool),
+		Timeout:  time.Minute * 5,
+		Extra:    "",
+		Template: func() *Embed { return NewEmbed() },
+		delete:   false,
 	}
 }
 
-// NewPaginatorForContext creates a new paginator for this command context
 func NewPaginatorForContext(ctx *CommandContext) *Paginator {
-	return NewPaginator(ctx.Session, ctx.Channel.ID, ctx.Author.ID)
+	return NewPaginator(ctx.Client, ctx.Channel.ID, ctx.Author.ID)
 }
 
-// SetTemplate sets the base template.
 func (p *Paginator) SetTemplate(em func() *Embed) {
 	p.Template = em
 }
@@ -72,31 +66,25 @@ func (p *Paginator) Delete() {
 	p.delete = true
 }
 
-// Adds a page, takes a function that recieves the copy of embed template
-// inside you can modify the embed as needed then return it back.
 func (p *Paginator) AddPage(fn func(em *Embed) *Embed) {
 	p.Pages = append(p.Pages, fn(p.Template()).Build())
 }
 
-// Adds a page as string, this calls the regular AddPage with the callback
-// as a simple function that only sets the description to the given string.
 func (p *Paginator) AddPageString(str string) {
 	p.AddPage(func(em *Embed) *Embed {
 		return em.SetDescription(str)
 	})
 }
 
-// Add all the reactions in order.
-// Called by Run to initialize.
 func (p *Paginator) addReactions() {
 	if p.Message == nil {
 		return
 	}
-	p.Session.MessageReactionAdd(p.ChannelID, p.Message.ID, EmojiFirst)
-	p.Session.MessageReactionAdd(p.ChannelID, p.Message.ID, EmojiLeft)
-	p.Session.MessageReactionAdd(p.ChannelID, p.Message.ID, EmojiStop)
-	p.Session.MessageReactionAdd(p.ChannelID, p.Message.ID, EmojiRight)
-	p.Session.MessageReactionAdd(p.ChannelID, p.Message.ID, EmojiLast)
+	p.Client.CreateReaction(context.Background(), p.Channel, p.Message.ID, EmojiFirst)
+	p.Client.CreateReaction(context.Background(), p.Channel, p.Message.ID, EmojiLeft)
+	p.Client.CreateReaction(context.Background(), p.Channel, p.Message.ID, EmojiStop)
+	p.Client.CreateReaction(context.Background(), p.Channel, p.Message.ID, EmojiRight)
+	p.Client.CreateReaction(context.Background(), p.Channel, p.Message.ID, EmojiLast)
 }
 
 // Stops the paginator by sending the signal to the Stop Channel.
@@ -132,7 +120,7 @@ func (p *Paginator) getPreviousIndex() int {
 // Called by Run to initialize.
 func (p *Paginator) SetFooter() {
 	for index, embed := range p.Pages {
-		embed.Footer = &discordgo.MessageEmbedFooter{
+		embed.Footer = &disgord.EmbedFooter{
 			Text: fmt.Sprintf("Page %d/%d %s", index+1, len(p.Pages), p.Extra),
 		}
 	}
@@ -142,7 +130,7 @@ func (p *Paginator) SetFooter() {
 // Edits the current message to the given page and updates the index.
 func (p *Paginator) Goto(index int) {
 	page := p.Pages[index]
-	p.Session.ChannelMessageEditEmbed(p.ChannelID, p.Message.ID, page)
+	p.Client.UpdateMessage(context.Background(), p.Channel, p.Message.ID).SetEmbed(page)
 	p.lock.Lock()
 	p.index = index
 	p.lock.Unlock()
@@ -160,11 +148,11 @@ func (p *Paginator) PreviousPage() {
 	p.Goto(p.getPreviousIndex())
 }
 
-func (p *Paginator) nextReaction() chan *discordgo.MessageReactionAdd {
-	channel := make(chan *discordgo.MessageReactionAdd)
-	p.Session.AddHandlerOnce(func(_ *discordgo.Session, r *discordgo.MessageReactionAdd) {
+func (p *Paginator) nextReaction() chan *disgord.MessageReactionAdd {
+	channel := make(chan *disgord.MessageReactionAdd)
+	p.Client.On(disgord.EvtMessageReactionAdd, func(_ disgord.Session, r *disgord.MessageReactionAdd) {
 		channel <- r
-	})
+	}, &disgord.Ctrl{Runs: 1})
 	return channel
 }
 
@@ -176,7 +164,7 @@ func (p *Paginator) Run() {
 		return
 	}
 	p.SetFooter()
-	msg, err := p.Session.ChannelMessageSendEmbed(p.ChannelID, p.Pages[0])
+	msg, err := p.Client.SendMsg(context.Background(), p.Channel, p.Pages[0])
 	if err != nil {
 		return
 	}
@@ -187,7 +175,7 @@ func (p *Paginator) Run() {
 
 	p.Running = true
 	start := time.Now()
-	var r *discordgo.MessageReaction
+	var r *disgord.MessageReactionAdd
 
 	defer func() {
 		p.Running = false
@@ -196,33 +184,34 @@ func (p *Paginator) Run() {
 	for {
 		select {
 		case e := <-p.nextReaction():
-			r = e.MessageReaction
+			r = e
 		case <-time.After(start.Add(p.Timeout).Sub(time.Now())):
-			p.Session.MessageReactionsRemoveAll(p.ChannelID, p.Message.ID)
+			p.Client.DeleteAllReactions(context.Background(), p.Channel, p.Message.ID)
 			return
 		case <-p.StopChan:
-			p.Session.ChannelMessageDelete(p.ChannelID, p.Message.ID)
+			p.Client.DeleteMessage(context.Background(), p.Channel, p.Message.ID)
 			return
 		}
 
 		if r.MessageID != p.Message.ID {
 			continue
 		}
-		if p.AuthorID != 0 && r.UserID != p.AuthorID {
+		if !p.AuthorID.IsZero() && r.UserID.String() != p.AuthorID.String() {
 			continue
 		}
 
 		go func() {
-			switch r.Emoji.Name {
+			switch r.PartialEmoji.Name {
 			case EmojiStop:
 				p.Stop()
-				err := p.Session.MessageReactionsRemoveAll(p.ChannelID, p.Message.ID)
+				err := p.Client.DeleteAllReactions(context.Background(), p.Channel, p.Message.ID)
 				if err != nil {
-					p.Session.MessageReactionRemoveMe(p.ChannelID, p.Message.ID, EmojiFirst)
-					p.Session.MessageReactionRemoveMe(p.ChannelID, p.Message.ID, EmojiLeft)
-					p.Session.MessageReactionRemoveMe(p.ChannelID, p.Message.ID, EmojiStop)
-					p.Session.MessageReactionRemoveMe(p.ChannelID, p.Message.ID, EmojiRight)
-					p.Session.MessageReactionRemoveMe(p.ChannelID, p.Message.ID, EmojiLast)
+
+					p.Client.DeleteOwnReaction(context.Background(), p.Channel, p.Message.ID, EmojiFirst)
+					p.Client.DeleteOwnReaction(context.Background(), p.Channel, p.Message.ID, EmojiLeft)
+					p.Client.DeleteOwnReaction(context.Background(), p.Channel, p.Message.ID, EmojiStop)
+					p.Client.DeleteOwnReaction(context.Background(), p.Channel, p.Message.ID, EmojiRight)
+					p.Client.DeleteOwnReaction(context.Background(), p.Channel, p.Message.ID, EmojiLast)
 				}
 			case EmojiRight:
 				p.NextPage()
@@ -236,7 +225,7 @@ func (p *Paginator) Run() {
 		}()
 		go func() {
 			time.Sleep(time.Millisecond * 250)
-			p.Session.MessageReactionRemove(r.ChannelID, r.MessageID, r.Emoji.Name, r.UserID)
+			p.Client.DeleteUserReaction(context.Background(), r.ChannelID, r.MessageID, r.PartialEmoji.ID, r.UserID)
 		}()
 	}
 }

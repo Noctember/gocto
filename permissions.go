@@ -1,36 +1,28 @@
-package sapphire
+package gocto
 
 import (
-	"github.com/jonas747/discordgo"
+	"github.com/andersfylling/disgord"
 )
 
-// Utility to help calculate permissions. Since discordgo is too damn low-level
-
-// Permissions represent permission bits for a discord entity.
 type Permissions int
 
-// PermissionsForRole returns a permissions instance for a role.
-func PermissionsForRole(role *discordgo.Role) Permissions {
+func PermissionsForRole(role *disgord.Role) Permissions {
 	return Permissions(role.Permissions)
 }
 
-// PermissionsForMember returns a permissions instance for a member.
-func PermissionsForMember(guild *discordgo.Guild, member *discordgo.Member) Permissions {
-	// Owners have all permissions.
+func PermissionsForMember(guild *disgord.Guild, member *disgord.Member) Permissions {
 	if member.User.ID == guild.OwnerID {
-		return Permissions(discordgo.PermissionAll)
+		return Permissions(disgord.PermissionAll)
 	}
-	bits := 0
-	// Combine all permissions from every role.
+	bits := uint64(0)
 	for _, rID := range member.Roles {
-		var role *discordgo.Role
+		var role *disgord.Role
 		for _, gRole := range guild.Roles {
 			if gRole.ID == rID {
 				role = gRole
 				break
 			}
 		}
-		// Do we have a choice if it was nil?
 		if role != nil {
 			bits |= role.Permissions
 		}

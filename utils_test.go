@@ -1,4 +1,4 @@
-package sapphire
+package gocto
 
 import (
 	"testing"
