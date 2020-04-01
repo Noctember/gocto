@@ -130,7 +130,7 @@ func (p *Paginator) SetFooter() {
 // Edits the current message to the given page and updates the index.
 func (p *Paginator) Goto(index int) {
 	page := p.Pages[index]
-	p.Client.UpdateMessage(context.Background(), p.Channel, p.Message.ID).SetEmbed(page)
+	p.Client.UpdateMessage(context.Background(), p.Channel, p.Message.ID).SetEmbed(page).Execute()
 	p.lock.Lock()
 	p.index = index
 	p.lock.Unlock()
