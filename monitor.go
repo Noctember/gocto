@@ -133,14 +133,14 @@ func monitorHandler(bot *Bot, m *disgord.Message, edit bool) {
 	}
 }
 
-func monitorListener(bot *Bot) func(s *disgord.Session, m disgord.MessageCreate) {
-	return func(s *disgord.Session, m disgord.MessageCreate) {
+func monitorListener(bot *Bot) func(s disgord.Session, m *disgord.MessageCreate) {
+	return func(s disgord.Session, m *disgord.MessageCreate) {
 		monitorHandler(bot, m.Message, false)
 	}
 }
 
-func monitorEditListener(bot *Bot) func(s *disgord.Session, m disgord.MessageUpdate) {
-	return func(s *disgord.Session, m disgord.MessageUpdate) {
+func monitorEditListener(bot *Bot) func(s disgord.Session, m *disgord.MessageUpdate) {
+	return func(s disgord.Session, m *disgord.MessageUpdate) {
 		monitorHandler(bot, m.Message, true)
 	}
 }
