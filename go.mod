@@ -1,4 +1,4 @@
-module github.com/Noctember/sapphire
+module github.com/Noctember/gocto
 
 go 1.13
 
