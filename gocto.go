@@ -302,7 +302,11 @@ func (bot *Bot) LoadBuiltins() *Bot {
 		stats := &runtime.MemStats{}
 		runtime.ReadMemStats(stats)
 
-		guildsTmp, _ := ctx.Client.GetGuilds(context.Background(), &disgord.GetCurrentUserGuildsParams{After: disgord.NewSnowflake(0)})
+		guildsTmp, err := ctx.Client.GetGuilds(context.Background(), &disgord.GetCurrentUserGuildsParams{})
+		if err != nil {
+			ctx.Error(err)
+			return
+		}
 		var guilds, channels int
 		var users uint
 		guilds = len(guildsTmp)
@@ -310,14 +314,14 @@ func (bot *Bot) LoadBuiltins() *Bot {
 			users += guild.MemberCount
 			channels += len(guild.Channels)
 		}
-		self := ctx.User(int64(ctx.Bot.BotID))
+		self, _ := ctx.Client.GetCurrentUser(context.Background())
 		av, _ := self.AvatarURL(256, true)
 		ctx.BuildEmbed(NewEmbed().
 			SetTitle("Stats").
 			SetAuthor(self.Username, av).
 			SetColor(bot.Color).
 			AddField("**Go Version**", strings.TrimPrefix(runtime.Version(), "go")).
-			AddField("**DiscordGo Version**", disgord.Version).
+			AddField("**Disgord Version**", disgord.Version).
 			AddField("**Command Stats**", fmt.Sprintf("Total Commands: %d\nCommands Ran: %d", len(bot.Commands), bot.CommandsRan)).
 			AddField("**Bot Stats**", fmt.Sprintf("Guilds: %d\nUsers: %d\nChannels: %d\nUptime: %s", guilds, users, channels, humanize.RelTime(bot.Uptime, time.Now(), "", ""))).
 			AddField("**Memory Stats**", fmt.Sprintf("Used: %s / %s\nGarbage Collected: %s\nGC Cycles: %d\nForced GC Cycles: %d\nLast GC: %s\nNext GC Target: %s\nGoroutines: %d",

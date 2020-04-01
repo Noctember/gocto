@@ -150,9 +150,11 @@ func (p *Paginator) PreviousPage() {
 
 func (p *Paginator) nextReaction() chan *disgord.MessageReactionAdd {
 	channel := make(chan *disgord.MessageReactionAdd)
+	ctrl := &disgord.Ctrl{Runs: 1}
 	p.Client.On(disgord.EvtMessageReactionAdd, func(_ disgord.Session, r *disgord.MessageReactionAdd) {
 		channel <- r
-	}, &disgord.Ctrl{Runs: 1})
+		ctrl.CloseChannel()
+	}, ctrl)
 	return channel
 }
 
