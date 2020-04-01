@@ -87,7 +87,7 @@ func New(s *disgord.Client) *Bot {
 			bot.CommandCooldowns = make(map[int64]map[string]time.Time)
 			bot.CommandEdits = make(map[disgord.Snowflake]disgord.Snowflake)
 		}()
-	}, disgord.Ctrl{Runs: 1})
+	}, &disgord.Ctrl{Runs: 1})
 	return bot
 }
 
