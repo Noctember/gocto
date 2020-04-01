@@ -165,7 +165,7 @@ func (ctx *CommandContext) Reply(content string, args ...interface{}) (*disgord.
 		return msg, nil
 	}
 	if !ctx.Command.Override {
-		old, _ := ctx.Client.SendMsg(context.Background(), ctx.Channel.ID, m)
+		old, _ := ctx.Client.GetMessage(context.Background(), ctx.Channel.ID, m)
 
 		return ctx.Client.UpdateMessage(context.Background(), ctx.Channel.ID, m).
 			SetContent(old.Content + "\n" + content).Execute()
