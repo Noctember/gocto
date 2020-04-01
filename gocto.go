@@ -230,10 +230,11 @@ func (bot *Bot) LoadBuiltins() *Bot {
 		}
 		taken := time.Duration(time.Now().UnixNano() - bottime.UnixNano())
 		started := time.Now()
-		ctx.EditLocale(msg, "COMMAND_PING_PONG", taken.String(), "Loading")
+		ctx.EditLocale(msg, "COMMAND_PING_PONG", "Loading", "Loading", "Loading")
 		httpPing := time.Since(started)
 
-		ctx.EditLocale(msg, "COMMAND_PING_PONG", taken.String(), httpPing.String())
+		t, _ := ctx.Client.AvgHeartbeatLatency()
+		ctx.EditLocale(msg, "COMMAND_PING_PONG", taken.String(), httpPing.String(), t.String())
 	}).SetDescription("Pong! Responds with Bot latency."))
 
 	bot.AddCommand(NewCommand("help", "General", func(ctx *CommandContext) {
