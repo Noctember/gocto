@@ -147,7 +147,7 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 			return nil, fmt.Errorf("**%s** must be a valid channel mention or ID.", tag.Name)
 		}
 		i, _ := strconv.ParseInt(match[1], 10, 64)
-		channel, _ := ctx.Client.Cache().Get(disgord.ChannelCache, disgord.NewSnowflake(uint64(i)))
+		channel, _ := ctx.Client.Cacher().Get(disgord.ChannelCache, disgord.NewSnowflake(uint64(i)))
 
 		if channel == nil {
 			return nil, fmt.Errorf("That channel cannot be found.")

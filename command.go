@@ -356,7 +356,7 @@ func (ctx *CommandContext) ParseArgs() bool {
 }
 
 func (ctx *CommandContext) User(id int64) *disgord.User {
-	u, _ := ctx.Client.Cache().Get(disgord.UserCache, disgord.NewSnowflake(uint64(id)))
+	u, _ := ctx.Client.Cacher().Get(disgord.UserCache, disgord.NewSnowflake(uint64(id)))
 	return u.(*disgord.User)
 }
 
