@@ -303,7 +303,7 @@ func (bot *Bot) LoadBuiltins() *Bot {
 		stats := &runtime.MemStats{}
 		runtime.ReadMemStats(stats)
 
-		guildsTmp, err := ctx.Client.GetGuilds(context.Background(), &disgord.GetCurrentUserGuildsParams{})
+		guildsTmp, err := ctx.Client.GetGuilds(context.Background(), &disgord.GetCurrentUserGuildsParams{Limit: 10000000})
 		if err != nil {
 			ctx.Error(err)
 			return
