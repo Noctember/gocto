@@ -1,7 +1,7 @@
 package helpers
 
 import (
-	"github.com/andersfylling/disgord"
+	"github.com/Noctember/disgord"
 	"strings"
 )
 

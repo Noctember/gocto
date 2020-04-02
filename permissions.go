@@ -1,7 +1,7 @@
 package gocto
 
 import (
-	"github.com/andersfylling/disgord"
+	"github.com/Noctember/disgord"
 )
 
 type Permissions int

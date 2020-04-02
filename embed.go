@@ -2,7 +2,7 @@ package gocto
 
 import (
 	"fmt"
-	"github.com/andersfylling/disgord"
+	"github.com/Noctember/disgord"
 )
 
 // Embed ...

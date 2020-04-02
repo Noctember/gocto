@@ -3,7 +3,7 @@ package gocto
 import (
 	"context"
 	"fmt"
-	"github.com/andersfylling/disgord"
+	"github.com/Noctember/disgord"
 	"regexp"
 	"strconv"
 )

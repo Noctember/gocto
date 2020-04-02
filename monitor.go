@@ -3,8 +3,8 @@ package gocto
 import (
 	"context"
 	"fmt"
+	"github.com/Noctember/disgord"
 	"github.com/Noctember/gocto/helpers"
-	"github.com/andersfylling/disgord"
 	"regexp"
 	"strings"
 )

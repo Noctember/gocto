@@ -3,7 +3,7 @@ package gocto
 import (
 	"context"
 	"fmt"
-	"github.com/andersfylling/disgord"
+	"github.com/Noctember/disgord"
 	"github.com/dustin/go-humanize"
 	"os"
 	"os/signal"
