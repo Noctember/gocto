@@ -2,8 +2,7 @@ package gocto
 
 import (
 	"fmt"
-	"github.com/Noctember/disgord"
-	"github.com/Noctember/sapphire/helpers"
+	"github.com/Noctember/gocto/helpers"
 	"github.com/jonas747/discordgo"
 	"regexp"
 	"strconv"
@@ -244,7 +243,7 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 	}
 
 	if cmd.RequiredPermissions != 0 && !PermissionsForMember(ctx.Guild, cctx.Member(int64(ctx.Author.ID))).Has(cmd.RequiredPermissions) {
-		cctx.ReplyLocale("COMMAND_MISSING_PERMS", helpers.GetPermissionsText(disgord.PermissionBit(cmd.RequiredPermissions)))
+		cctx.ReplyLocale("COMMAND_MISSING_PERMS", helpers.GetPermissionsText(cmd.RequiredPermissions))
 		return
 	}
 
