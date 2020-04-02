@@ -1,11 +1,12 @@
 package gocto
 
 import (
-	"context"
 	"fmt"
 	"github.com/Noctember/disgord"
-	"github.com/Noctember/gocto/helpers"
+	"github.com/Noctember/sapphire/helpers"
+	"github.com/jonas747/discordgo"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -61,16 +62,16 @@ func NewMonitor(name string, monitor MonitorHandler) *Monitor {
 }
 
 type MonitorContext struct {
-	Message *disgord.Message
-	Channel *disgord.Channel
-	Client  *disgord.Client
-	Author  *disgord.User
+	Message *discordgo.Message
+	Channel *discordgo.Channel
+	Session *discordgo.Session
+	Author  *discordgo.User
 	Monitor *Monitor
-	Guild   *disgord.Guild
+	Guild   *discordgo.Guild
 	Bot     *Bot
 }
 
-func monitorHandler(bot *Bot, m *disgord.Message, edit bool) {
+func monitorHandler(bot *Bot, m *discordgo.Message, edit bool) {
 
 	if m.Author == nil {
 		return
@@ -91,9 +92,9 @@ func monitorHandler(bot *Bot, m *disgord.Message, edit bool) {
 			continue
 		}
 
-		var guild *disgord.Guild = nil
+		var guild *discordgo.Guild = nil
 		if m.GuildID != 0 {
-			g, err := bot.Client.GetGuild(context.Background(), m.GuildID)
+			g, err := bot.Session.State.Guild(m.GuildID)
 			if err != nil {
 				continue
 			}
@@ -104,7 +105,7 @@ func monitorHandler(bot *Bot, m *disgord.Message, edit bool) {
 			continue
 		}
 
-		if m.Author.ID == bot.BotID && monitor.IgnoreSelf {
+		if m.Author.ID == bot.Session.State.User.ID && monitor.IgnoreSelf {
 			continue
 		}
 
@@ -116,13 +117,13 @@ func monitorHandler(bot *Bot, m *disgord.Message, edit bool) {
 			continue
 		}
 
-		channel, err := bot.Client.GetChannel(context.Background(), m.ChannelID)
+		channel, err := bot.Session.State.Channel(m.ChannelID)
 		if err != nil {
 			continue
 		}
 
 		go monitor.Run(bot, &MonitorContext{
-			Client:  bot.Client,
+			Session: bot.Session,
 			Message: m,
 			Author:  m.Author,
 			Channel: channel,
@@ -133,14 +134,14 @@ func monitorHandler(bot *Bot, m *disgord.Message, edit bool) {
 	}
 }
 
-func monitorListener(bot *Bot) func(s disgord.Session, m *disgord.MessageCreate) {
-	return func(s disgord.Session, m *disgord.MessageCreate) {
+func monitorListener(bot *Bot) func(s *discordgo.Session, m *discordgo.MessageCreate) {
+	return func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		monitorHandler(bot, m.Message, false)
 	}
 }
 
-func monitorEditListener(bot *Bot) func(s disgord.Session, m *disgord.MessageUpdate) {
-	return func(s disgord.Session, m *disgord.MessageUpdate) {
+func monitorEditListener(bot *Bot) func(s *discordgo.Session, m *discordgo.MessageUpdate) {
+	return func(s *discordgo.Session, m *discordgo.MessageUpdate) {
 		monitorHandler(bot, m.Message, true)
 	}
 }
@@ -153,11 +154,15 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 		return
 	}
 
-	prefix := bot.Prefix(bot, ctx.Message, ctx.Channel.Type == disgord.ChannelTypeDM)
+	prefix := bot.Prefix(bot, ctx.Message, ctx.Channel.Type == discordgo.ChannelTypeDM)
 	if !strings.HasPrefix(ctx.Message.Content, prefix) {
 		if bot.MentionPrefix {
-			mPrefix := "<@" + bot.BotID.String() + "> "
-			mNickPrefix := "<@!" + bot.BotID.String() + "> "
+			// Check mention prefix.
+			// Could've used regex here but it adds more complexity of compiling it at a proper time
+			// Because we will need the ID so we would need to delay it until ready.
+			// Let's just simplify it for now.
+			mPrefix := "<@" + strconv.FormatInt(bot.Session.State.User.ID, 10) + "> "
+			mNickPrefix := "<@!" + strconv.FormatInt(bot.Session.State.User.ID, 10) + "> "
 			if strings.HasPrefix(ctx.Message.Content, mPrefix) {
 				prefix = mPrefix
 			} else if strings.HasPrefix(ctx.Message.Content, mNickPrefix) {
@@ -208,7 +213,7 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 		Command:     cmd,
 		Message:     ctx.Message,
 		Channel:     ctx.Channel,
-		Client:      ctx.Client,
+		Session:     ctx.Session,
 		Author:      ctx.Author,
 		RawArgs:     args,
 		Prefix:      prefix,
@@ -217,7 +222,7 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 		InvokedName: input,
 	}
 
-	lang := bot.Language(bot, ctx.Message, ctx.Channel.Type == disgord.ChannelTypeDM)
+	lang := bot.Language(bot, ctx.Message, ctx.Channel.Type == discordgo.ChannelTypeDM)
 	locale, ok := bot.Languages[lang]
 
 	// Shouldn't happen unless the user made a mistake returning an invalid string, let's help them find the problem.
@@ -234,7 +239,7 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 		return
 	}
 
-	if cmd.OwnerOnly && ctx.Author.ID != bot.Owner {
+	if cmd.OwnerOnly && ctx.Author.ID != bot.OwnerID {
 		return
 	}
 
@@ -255,10 +260,10 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 	}
 
 	if bot.CommandTyping {
-		ctx.Client.TriggerTypingIndicator(context.Background(), ctx.Message.ChannelID)
+		ctx.Session.ChannelTyping(ctx.Message.ChannelID)
 	}
 
-	canRun, after := bot.CheckCooldown(int64(ctx.Author.ID), cmd.Name, cmd.Cooldown)
+	canRun, after := bot.CheckCooldown(ctx.Author.ID, cmd.Name, cmd.Cooldown)
 	if !canRun {
 		cctx.ReplyLocale("COMMAND_COOLDOWN", after)
 		return
@@ -268,7 +273,7 @@ func CommandHandlerMonitor(bot *Bot, ctx *MonitorContext) {
 
 	defer func() {
 		if cmd.DeleteAfter {
-			ctx.Client.DeleteMessage(context.Background(), ctx.Channel.ID, ctx.Message.ID)
+			ctx.Session.ChannelMessageDelete(ctx.Channel.ID, ctx.Message.ID)
 		}
 		if err := recover(); err != nil {
 			bot.ErrorHandler(bot, &CommandError{Err: err, Context: cctx})

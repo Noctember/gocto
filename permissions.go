@@ -1,22 +1,23 @@
 package gocto
 
 import (
-	"github.com/Noctember/disgord"
+	"github.com/jonas747/discordgo"
 )
 
 type Permissions int
 
-func PermissionsForRole(role *disgord.Role) Permissions {
+func PermissionsForRole(role *discordgo.Role) Permissions {
 	return Permissions(role.Permissions)
 }
 
-func PermissionsForMember(guild *disgord.Guild, member *disgord.Member) Permissions {
+func PermissionsForMember(guild *discordgo.Guild, member *discordgo.Member) Permissions {
 	if member.User.ID == guild.OwnerID {
-		return Permissions(disgord.PermissionAll)
+		return Permissions(discordgo.PermissionAll)
 	}
-	bits := uint64(0)
+	bits := 0
+	// Combine all permissions from every role.
 	for _, rID := range member.Roles {
-		var role *disgord.Role
+		var role *discordgo.Role
 		for _, gRole := range guild.Roles {
 			if gRole.ID == rID {
 				role = gRole

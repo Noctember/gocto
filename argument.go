@@ -1,9 +1,8 @@
 package gocto
 
 import (
-	"context"
 	"fmt"
-	"github.com/Noctember/disgord"
+	"github.com/jonas747/discordgo"
 	"regexp"
 	"strconv"
 )
@@ -43,32 +42,32 @@ func (arg *Argument) IsProvided() bool {
 	return arg.provided
 }
 
-func (arg *Argument) AsUser() *disgord.User {
-	return arg.Value.(*disgord.User)
+func (arg *Argument) AsUser() *discordgo.User {
+	return arg.Value.(*discordgo.User)
 }
 
-func (arg *Argument) AsMember() *disgord.Member {
-	return arg.Value.(*disgord.Member)
+func (arg *Argument) AsMember() *discordgo.Member {
+	return arg.Value.(*discordgo.Member)
 }
 
-func (arg *Argument) AsGuild() *disgord.Guild {
-	return arg.Value.(*disgord.Guild)
+func (arg *Argument) AsGuild() *discordgo.Guild {
+	return arg.Value.(*discordgo.Guild)
 }
 
-func (arg *Argument) AsRole() *disgord.Role {
-	return arg.Value.(*disgord.Role)
+func (arg *Argument) AsRole() *discordgo.Role {
+	return arg.Value.(*discordgo.Role)
 }
 
 func (arg *Argument) AsBool() bool {
 	return arg.Value.(bool)
 }
 
-func (arg *Argument) AsMessage() *disgord.Message {
-	return arg.Value.(*disgord.Message)
+func (arg *Argument) AsMessage() *discordgo.Message {
+	return arg.Value.(*discordgo.Message)
 }
 
-func (arg *Argument) AsChannel() *disgord.Channel {
-	return arg.Value.(*disgord.Channel)
+func (arg *Argument) AsChannel() *discordgo.Channel {
+	return arg.Value.(*discordgo.Channel)
 }
 
 // ----- Argument parsing -----
@@ -105,8 +104,8 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 		match := MentionRegex.FindStringSubmatch(raw)
 
 		if raw == "^" {
-			msg, _ := ctx.Client.GetMessages(context.Background(), ctx.Channel.ID, &disgord.GetMessagesParams{Limit: 1, Before: ctx.Message.ID})
-			return arg(ctx.Member(int64(msg[0].Author.ID))), nil
+			msg, _ := ctx.Session.ChannelMessages(ctx.Channel.ID, 1, ctx.Message.ID, 0, 0)
+			return arg(ctx.Member(msg[0].Author.ID)), nil
 		}
 
 		if len(match) < 2 {
@@ -122,8 +121,8 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 		match := MentionRegex.FindStringSubmatch(raw)
 
 		if raw == "^" {
-			msg, _ := ctx.Client.GetMessages(context.Background(), ctx.Channel.ID, &disgord.GetMessagesParams{Limit: 1, Before: ctx.Message.ID})
-			user, _ := ctx.FetchUser(int64(msg[0].Author.ID))
+			msg, _ := ctx.Session.ChannelMessages(ctx.Channel.ID, 1, ctx.Message.ID, 0, 0)
+			user, _ := ctx.FetchUser(msg[0].Author.ID)
 			return arg(user), nil
 		}
 
@@ -147,7 +146,7 @@ func ParseArgument(ctx *CommandContext, tag *UsageTag, raw string) (*Argument, e
 			return nil, fmt.Errorf("**%s** must be a valid channel mention or ID.", tag.Name)
 		}
 		i, _ := strconv.ParseInt(match[1], 10, 64)
-		channel, _ := ctx.Client.Cacher().Get(disgord.ChannelCache, disgord.NewSnowflake(uint64(i)))
+		channel, _ := ctx.Session.State.Channel(i)
 
 		if channel == nil {
 			return nil, fmt.Errorf("That channel cannot be found.")

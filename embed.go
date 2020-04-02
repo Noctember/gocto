@@ -2,12 +2,12 @@ package gocto
 
 import (
 	"fmt"
-	"github.com/Noctember/disgord"
+	"github.com/jonas747/discordgo"
 )
 
 // Embed ...
 type Embed struct {
-	*disgord.Embed
+	*discordgo.MessageEmbed
 }
 
 const (
@@ -21,11 +21,11 @@ const (
 )
 
 func NewEmbed() *Embed {
-	return &Embed{&disgord.Embed{}}
+	return &Embed{&discordgo.MessageEmbed{}}
 }
 
-func (e *Embed) Build() *disgord.Embed {
-	return e.Embed
+func (e *Embed) Build() *discordgo.MessageEmbed {
+	return e.MessageEmbed
 }
 
 func (e *Embed) SetTitle(name string) *Embed {
@@ -54,7 +54,7 @@ func (e *Embed) AddField(name, value string, args ...interface{}) *Embed {
 		value = fmt.Sprintf(value, args...)
 	}
 
-	e.Fields = append(e.Fields, &disgord.EmbedField{
+	e.Fields = append(e.Fields, &discordgo.MessageEmbedField{
 		Name:  name,
 		Value: value,
 	})
@@ -75,7 +75,7 @@ func (e *Embed) AddInlineField(name, value string, args ...interface{}) *Embed {
 		value = fmt.Sprintf(value, args...)
 	}
 
-	e.Fields = append(e.Fields, &disgord.EmbedField{
+	e.Fields = append(e.Fields, &discordgo.MessageEmbedField{
 		Name:   name,
 		Value:  value,
 		Inline: true,
@@ -102,7 +102,7 @@ func (e *Embed) SetFooter(args ...string) *Embed {
 		return e
 	}
 
-	e.Footer = &disgord.EmbedFooter{
+	e.Footer = &discordgo.MessageEmbedFooter{
 		IconURL:      iconURL,
 		Text:         text,
 		ProxyIconURL: proxyURL,
@@ -126,7 +126,7 @@ func (e *Embed) SetImage(args ...string) *Embed {
 		proxyURL = args[1]
 	}
 
-	e.Image = &disgord.EmbedImage{
+	e.Image = &discordgo.MessageEmbedImage{
 		URL:      URL,
 		ProxyURL: proxyURL,
 	}
@@ -149,7 +149,7 @@ func (e *Embed) SetThumbnail(args ...string) *Embed {
 		proxyURL = args[1]
 	}
 
-	e.Thumbnail = &disgord.EmbedThumbnail{
+	e.Thumbnail = &discordgo.MessageEmbedThumbnail{
 		URL:      URL,
 		ProxyURL: proxyURL,
 	}
@@ -184,7 +184,7 @@ func (e *Embed) SetAuthor(args ...string) *Embed {
 		proxyURL = args[3]
 	}
 
-	e.Author = &disgord.EmbedAuthor{
+	e.Author = &discordgo.MessageEmbedAuthor{
 		Name:         name,
 		IconURL:      iconURL,
 		URL:          URL,

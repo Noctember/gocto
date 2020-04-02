@@ -1,10 +1,9 @@
 package gocto
 
 import (
-	"context"
 	"fmt"
-	"github.com/Noctember/disgord"
 	"github.com/dustin/go-humanize"
+	"github.com/jonas747/discordgo"
 	"os"
 	"os/signal"
 	"runtime"
@@ -17,45 +16,46 @@ const VERSION = "0.0.1"
 
 const COLOR = 0x7F139E
 
-type PrefixHandler func(b *Bot, m *disgord.Message, dm bool) string
-type ListHandler func(b *Bot, m *disgord.Message) bool
-type LocaleHandler func(b *Bot, m *disgord.Message, dm bool) string
+type PrefixHandler func(b *Bot, m *discordgo.Message, dm bool) string
+type ListHandler func(b *Bot, m *discordgo.Message) bool
+type LocaleHandler func(b *Bot, m *discordgo.Message, dm bool) string
 type ErrorHandler func(b *Bot, err interface{})
 
 type Bot struct {
-	Client           *disgord.Client
-	Prefix           PrefixHandler
-	Language         LocaleHandler
-	Commands         map[string]*Command
-	CommandsRan      int
-	Monitors         map[string]*Monitor
+	Session          *discordgo.Session  // The discordgo session.
+	Prefix           PrefixHandler       // The handler called to get the prefix. (default: !)
+	Language         LocaleHandler       // The handler called to get the language (default: en-US)
+	Commands         map[string]*Command // Map of commands.
+	CommandsRan      int                 // Commands ran.
+	Monitors         map[string]*Monitor // Map of monitors.
 	aliases          map[string]string
 	CommandCooldowns map[int64]map[string]time.Time
-	CommandEdits     map[disgord.Snowflake]disgord.Snowflake
-	Owner            disgord.Snowflake
-	BotID            disgord.Snowflake
-	InvitePerms      int
-	Languages        map[string]*Language
-	DefaultLocale    *Language
-	CommandTyping    bool
-	ErrorHandler     ErrorHandler
+	CommandEdits     map[int64]int64
+	OwnerID          int64                // Bot owner's ID (default: fetched from application info)
+	InvitePerms      int                  // Permissions bits to use for the invite link. (default: 3072)
+	Languages        map[string]*Language // Map of languages.
+	DefaultLocale    *Language            // Default locale to fallback. (default: en-US)
+	CommandTyping    bool                 // Wether to start typing when a command is being ran. (default: true)
+	ErrorHandler     ErrorHandler         // The handler to catch panics in monitors (which includes commands).
 	ListHandler      ListHandler
-	MentionPrefix    bool
+	MentionPrefix    bool // Wether to allow @mention of the bot to be used as a prefix too. (default: true)
 	sweepTicker      *time.Ticker
-	Uptime           time.Time
-	Color            int
+	Application      *discordgo.Application // The bot's application.
+	Uptime           time.Time              // The time the bot hit ready event.
+	Color            int                    // The color used in builtin commands's embeds.
 }
 
-func New(s *disgord.Client) *Bot {
+// New creates a new sapphire bot, pass in a discordgo instance configured with your token.
+func New(s *discordgo.Session) *Bot {
 	bot := &Bot{
-		Client: s,
-		Prefix: func(_ *Bot, _ *disgord.Message, _ bool) string {
-			return "!"
+		Session: s,
+		Prefix: func(_ *Bot, _ *discordgo.Message, _ bool) string {
+			return "!" // A very common prefix, sigh, so we will make it the default.
 		},
-		Language: func(_ *Bot, _ *disgord.Message, _ bool) string {
+		Language: func(_ *Bot, _ *discordgo.Message, _ bool) string {
 			return "en-US"
 		},
-		ListHandler: func(b *Bot, m *disgord.Message) bool {
+		ListHandler: func(b *Bot, m *discordgo.Message) bool {
 			return true
 		},
 		ErrorHandler: func(_ *Bot, err interface{}) {
@@ -67,27 +67,38 @@ func New(s *disgord.Client) *Bot {
 		CommandsRan:      0,
 		InvitePerms:      3072,
 		CommandCooldowns: make(map[int64]map[string]time.Time),
-		CommandEdits:     make(map[disgord.Snowflake]disgord.Snowflake),
+		CommandEdits:     make(map[int64]int64),
 		Monitors:         make(map[string]*Monitor),
 		CommandTyping:    true,
-		sweepTicker:      time.NewTicker(2 * time.Hour),
+		sweepTicker:      time.NewTicker(1 * time.Hour),
+		Application:      nil,
 		MentionPrefix:    true,
 		Color:            COLOR,
 	}
 	bot.AddLanguage(English)
 	bot.SetDefaultLocale("en-US")
 	bot.AddMonitor(NewMonitor("commandHandler", CommandHandlerMonitor).AllowEdits())
-	s.On(disgord.EvtMessageCreate, monitorListener(bot))
-	s.On(disgord.EvtMessageUpdate, monitorEditListener(bot))
-	s.On(disgord.EvtReady, func(s disgord.Session, ready *disgord.Ready) {
+	s.AddHandler(monitorListener(bot))
+	s.AddHandler(monitorEditListener(bot))
+	s.AddHandlerOnce(func(s *discordgo.Session, ready *discordgo.Ready) {
 		bot.Uptime = time.Now()
 
 		go func() {
 			<-bot.sweepTicker.C
 			bot.CommandCooldowns = make(map[int64]map[string]time.Time)
-			bot.CommandEdits = make(map[disgord.Snowflake]disgord.Snowflake)
+			bot.CommandEdits = make(map[int64]int64)
 		}()
-	}, &disgord.Ctrl{Runs: 1})
+
+		// TODO: for some reason it says bots cannot use this endpoint, i've seen a similar usecase before
+		// try to figure out a way.
+		/*app, err := s.Application(ready.User.ID)
+		  if err != nil {
+		    bot.ErrorHandler(bot, err)
+		    return
+		  p}
+		  bot.Application = app
+		  if bot.OwnerID == "" { bot.OwnerID = app.Owner.ID }*/
+	})
 	return bot
 }
 
@@ -131,7 +142,7 @@ func (bot *Bot) SetPrefixHandler(prefix PrefixHandler) *Bot {
 }
 
 func (bot *Bot) SetPrefix(prefix string) *Bot {
-	bot.Prefix = func(_ *Bot, _ *disgord.Message, _ bool) string {
+	bot.Prefix = func(_ *Bot, _ *discordgo.Message, _ bool) string {
 		return prefix
 	}
 	return bot
@@ -141,7 +152,8 @@ func (bot *Bot) Wait() {
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
-	bot.Client.Disconnect()
+	// Cleanly close down the Discord session.
+	bot.Session.Close()
 	bot.sweepTicker.Stop()
 }
 
@@ -172,7 +184,7 @@ func (bot *Bot) GetCommand(name string) *Command {
 }
 
 func (bot *Bot) Connect() error {
-	return bot.Client.Connect(context.Background())
+	return bot.Session.Open()
 }
 
 // MustConnect is like Connect but panics if there is an error.
@@ -230,11 +242,10 @@ func (bot *Bot) LoadBuiltins() *Bot {
 		}
 		taken := time.Duration(time.Now().UnixNano() - bottime.UnixNano())
 		started := time.Now()
-		ctx.EditLocale(msg, "COMMAND_PING_PONG", "Loading", "Loading", "Loading")
+		ctx.EditLocale(msg, "COMMAND_PING_PONG", taken.String(), -1)
 		httpPing := time.Since(started)
 
-		t, _ := ctx.Client.AvgHeartbeatLatency()
-		ctx.EditLocale(msg, "COMMAND_PING_PONG", taken.String(), httpPing.String(), t.String())
+		ctx.EditLocale(msg, "COMMAND_PING_PONG", taken.String(), httpPing.String())
 	}).SetDescription("Pong! Responds with Bot latency."))
 
 	bot.AddCommand(NewCommand("help", "General", func(ctx *CommandContext) {
@@ -282,16 +293,16 @@ func (bot *Bot) LoadBuiltins() *Bot {
 				delete(categories, k)
 			}
 		}
-		av, _ := ctx.Author.AvatarURL(256, true)
-		var embed = &disgord.Embed{
+
+		var embed = &discordgo.MessageEmbed{
 			Title:  "Commands",
 			Color:  bot.Color,
-			Footer: &disgord.EmbedFooter{Text: "For more info on a command use: " + ctx.Prefix + "help <command>"},
-			Author: &disgord.EmbedAuthor{IconURL: av, Name: ctx.Author.Username},
+			Footer: &discordgo.MessageEmbedFooter{Text: "For more info on a command use: " + ctx.Prefix + "help <command>"},
+			Author: &discordgo.MessageEmbedAuthor{IconURL: ctx.Author.AvatarURL("256"), Name: ctx.Author.Username},
 		}
 
 		for cat, cmds := range categories {
-			var field = &disgord.EmbedField{Name: cat, Value: ""}
+			var field = &discordgo.MessageEmbedField{Name: cat, Value: ""}
 			field.Value = strings.Join(cmds, ", ")
 			field.Inline = true
 			embed.Fields = append(embed.Fields, field)
@@ -302,27 +313,20 @@ func (bot *Bot) LoadBuiltins() *Bot {
 	bot.AddCommand(NewCommand("stats", "General", func(ctx *CommandContext) {
 		stats := &runtime.MemStats{}
 		runtime.ReadMemStats(stats)
-
-		guildsTmp, err := ctx.Client.GetGuilds(context.Background(), &disgord.GetCurrentUserGuildsParams{Limit: 10000000})
-		if err != nil {
-			ctx.Error(err)
-			return
-		}
-		var guilds, channels int
-		var users uint
-		guilds = len(guildsTmp)
-		for _, guild := range guildsTmp {
+		// Counters
+		var guilds, users, channels int
+		guilds = len(ctx.Session.State.Guilds)
+		for _, guild := range ctx.Session.State.Guilds {
 			users += guild.MemberCount
 			channels += len(guild.Channels)
 		}
-		self, _ := ctx.Client.GetCurrentUser(context.Background())
-		av, _ := self.AvatarURL(256, true)
+
 		ctx.BuildEmbed(NewEmbed().
 			SetTitle("Stats").
-			SetAuthor(self.Username, av).
+			SetAuthor(ctx.Session.State.User.Username, ctx.Session.State.User.AvatarURL("256")).
 			SetColor(bot.Color).
 			AddField("**Go Version**", strings.TrimPrefix(runtime.Version(), "go")).
-			AddField("**Disgord Version**", disgord.Version).
+			AddField("**DiscordGo Version**", discordgo.VERSION).
 			AddField("**Command Stats**", fmt.Sprintf("Total Commands: %d\nCommands Ran: %d", len(bot.Commands), bot.CommandsRan)).
 			AddField("**Bot Stats**", fmt.Sprintf("Guilds: %d\nUsers: %d\nChannels: %d\nUptime: %s", guilds, users, channels, humanize.RelTime(bot.Uptime, time.Now(), "", ""))).
 			AddField("**Memory Stats**", fmt.Sprintf("Used: %s / %s\nGarbage Collected: %s\nGC Cycles: %d\nForced GC Cycles: %d\nLast GC: %s\nNext GC Target: %s\nGoroutines: %d",
@@ -343,8 +347,8 @@ func (bot *Bot) LoadBuiltins() *Bot {
 	}).SetDescription("Stats for nerds.").AddAliases("botstats", "info"))
 
 	bot.AddCommand(NewCommand("invite", "General", func(ctx *CommandContext) {
-		ctx.ReplyLocale("COMMAND_INVITE", fmt.Sprintf("https://discordapp.com/oauth2/authorize?client_id=%s&permissions=%d&scope=bot",
-			ctx.Bot.BotID.String(), bot.InvitePerms))
+		ctx.ReplyLocale("COMMAND_INVITE", fmt.Sprintf("https://discordapp.com/oauth2/authorize?client_id=%d&permissions=%d&scope=bot",
+			ctx.Session.State.User.ID, bot.InvitePerms))
 	}).SetDescription("Invite me to your server!").AddAliases("inv"))
 
 	bot.AddCommand(NewCommand("enable", "Owner", func(ctx *CommandContext) {
@@ -381,7 +385,7 @@ func (bot *Bot) LoadBuiltins() *Bot {
 		runtime.ReadMemStats(before)
 
 		bot.CommandCooldowns = make(map[int64]map[string]time.Time)
-		bot.CommandEdits = make(map[disgord.Snowflake]disgord.Snowflake)
+		bot.CommandEdits = make(map[int64]int64)
 		runtime.GC()
 		after := &runtime.MemStats{}
 		runtime.ReadMemStats(after)

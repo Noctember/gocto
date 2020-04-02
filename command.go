@@ -1,9 +1,8 @@
 package gocto
 
 import (
-	"context"
 	"fmt"
-	"github.com/Noctember/disgord"
+	"github.com/jonas747/discordgo"
 	"io"
 	"runtime"
 	"strings"
@@ -12,23 +11,23 @@ import (
 type CommandHandler func(ctx *CommandContext)
 
 type Command struct {
-	Name                string
-	Aliases             []string
-	Run                 CommandHandler
-	Enabled             bool
-	Description         string
-	Category            string
-	OwnerOnly           bool
-	GuildOnly           bool
-	UsageString         string
-	Usage               []*UsageTag
-	Cooldown            int
-	Editable            bool
-	RequiredPermissions int
-	DeleteAfter         bool
-	BotPermissions      int
-	Override            bool
-	AvailableTags       string
+	Name                string         // The command's name. (default: required)
+	Aliases             []string       // Aliases that point to this command. (default: [])
+	Run                 CommandHandler // The handler that actually runs the command. (default: required)
+	Enabled             bool           // Wether this command is enabled. (default: true)
+	Description         string         // The command's brief description. (default: "No Description Provided.")
+	Category            string         // The category this command belongs to. (default: required)
+	OwnerOnly           bool           // Wether this command can only be used by the owner. (default: false)
+	GuildOnly           bool           // Wether this command can only be ran on a guild. (default: false)
+	UsageString         string         // Usage string for this command. (default: "")
+	Usage               []*UsageTag    // Parsed usage tags for this command.
+	Cooldown            int            // Command cooldown in seconds. (default: 0)
+	Editable            bool           // Wether this command's response will be editable. (default: true)
+	RequiredPermissions int            // Permissions the user needs to run this command. (default: 0)
+	DeleteAfter         bool           // Deletes command when ran (default: false)
+	BotPermissions      int            // Permissions the bot needs to perform this command. (default: 0)
+	Override            bool           // Override message editting (default: true)
+	AvailableTags       string         // Shows available tags in help command (default: none)
 }
 
 func NewCommand(name string, category string, run CommandHandler) *Command {
@@ -119,24 +118,24 @@ func (c *Command) SetPermission(permbit int) *Command {
 }
 
 type CommandContext struct {
-	Command     *Command
-	Message     *disgord.Message
-	Client      *disgord.Client
-	Bot         *Bot
-	Channel     *disgord.Channel
-	Author      *disgord.User
-	Args        []*Argument
-	Prefix      string
-	Guild       *disgord.Guild
-	Flags       map[string]string
-	Locale      *Language
-	RawArgs     []string
-	InvokedName string
+	Command     *Command           // The currently executing command.
+	Message     *discordgo.Message // The message of this command.
+	Session     *discordgo.Session // The discordgo session.
+	Bot         *Bot               // The sapphire Bot.
+	Channel     *discordgo.Channel // The channel this command was ran on.
+	Author      *discordgo.User    // Alias of Context.Message.Author
+	Args        []*Argument        // List of arguments.
+	Prefix      string             // The prefix used to invoke this command.
+	Guild       *discordgo.Guild   // The guild this command was ran on.
+	Flags       map[string]string  // Map of flags passed to the command. e.g --flag=yo
+	Locale      *Language          // The current language.
+	RawArgs     []string           // The raw args that may not match the usage string.
+	InvokedName string             // The name this command was invoked as, this includes the used alias.
 }
 
 type CommandError struct {
-	Err     interface{}
-	Context *CommandContext
+	Err     interface{}     // The value passed to panic()
+	Context *CommandContext // The context of the command, use this to e.g get the command's name etc.
 	Line    int
 	File    string
 }
@@ -145,7 +144,9 @@ func (err *CommandError) Error() string {
 	return fmt.Sprint(err.Err)
 }
 
-func (ctx *CommandContext) Reply(content string, args ...interface{}) (*disgord.Message, error) {
+// Reply replies with a string.
+// It will call Sprintf() on the content if atleast one vararg is passed.
+func (ctx *CommandContext) Reply(content string, args ...interface{}) (*discordgo.Message, error) {
 
 	if !ctx.Command.Editable {
 		return ctx.ReplyNoEdit(content)
@@ -157,7 +158,7 @@ func (ctx *CommandContext) Reply(content string, args ...interface{}) (*disgord.
 
 	m, ok := ctx.Bot.CommandEdits[ctx.Message.ID]
 	if !ok {
-		msg, err := ctx.Client.SendMsg(context.Background(), ctx.Channel.ID, content)
+		msg, err := ctx.Session.ChannelMessageSend(ctx.Channel.ID, content)
 		if err != nil {
 			return nil, err
 		}
@@ -165,24 +166,25 @@ func (ctx *CommandContext) Reply(content string, args ...interface{}) (*disgord.
 		return msg, nil
 	}
 	if !ctx.Command.Override {
-		old, _ := ctx.Client.GetMessage(context.Background(), ctx.Channel.ID, m)
-
-		return ctx.Client.UpdateMessage(context.Background(), ctx.Channel.ID, m).
-			SetContent(old.Content + "\n" + content).Execute()
+		old, _ := ctx.Session.ChannelMessage(ctx.Channel.ID, m)
+		return ctx.Session.ChannelMessageEditComplex(discordgo.NewMessageEdit(ctx.Channel.ID, m).
+			SetContent(old.Content + "\n" + content))
 	}
-
-	return ctx.Client.UpdateMessage(context.Background(), ctx.Channel.ID, m).
-		SetContent(content).Execute()
+	return ctx.Session.ChannelMessageEditComplex(discordgo.NewMessageEdit(ctx.Channel.ID, m).
+		SetContent(content))
 }
 
-func (ctx *CommandContext) ReplyNoEdit(content string, args ...interface{}) (*disgord.Message, error) {
+// ReplyNoEdit replies with content but does not consider editable option of the command.
+func (ctx *CommandContext) ReplyNoEdit(content string, args ...interface{}) (*discordgo.Message, error) {
+	// See the comments in Reply
 	if len(args) > 0 {
 		content = fmt.Sprintf(content, args...)
 	}
-	return ctx.Client.SendMsg(context.Background(), ctx.Channel.ID, content)
+	return ctx.Session.ChannelMessageSend(ctx.Channel.ID, content)
 }
 
-func (ctx *CommandContext) ReplyLocale(key string, args ...interface{}) (*disgord.Message, error) {
+// ReplyLocale sends a localized key for the current context's locale.
+func (ctx *CommandContext) ReplyLocale(key string, args ...interface{}) (*discordgo.Message, error) {
 	res := ctx.Locale.Get(key, args...)
 
 	if res != "" {
@@ -199,7 +201,8 @@ func (ctx *CommandContext) ReplyLocale(key string, args ...interface{}) (*disgor
 			fmt.Sprintf("No localization found for the key \"%s\" Please report this to the developers.", key))))
 }
 
-func (ctx *CommandContext) EditLocale(msg *disgord.Message, key string, args ...interface{}) (*disgord.Message, error) {
+// EditLocale edits msg with a localized key
+func (ctx *CommandContext) EditLocale(msg *discordgo.Message, key string, args ...interface{}) (*discordgo.Message, error) {
 	res := ctx.Locale.Get(key, args...)
 	if res != "" {
 		return ctx.Edit(msg, res)
@@ -214,53 +217,59 @@ func (ctx *CommandContext) EditLocale(msg *disgord.Message, key string, args ...
 			fmt.Sprintf("No localization found for the key \"%s\" Please report this to the developers.", key))))
 }
 
-func (ctx *CommandContext) Edit(msg *disgord.Message, content string, args ...interface{}) (*disgord.Message, error) {
+// Edit edits msg's content
+// It will call Sprintf() on the content if atleast one vararg is passed.
+func (ctx *CommandContext) Edit(msg *discordgo.Message, content string, args ...interface{}) (*discordgo.Message, error) {
+	// See the comments in Reply
 	if len(args) > 0 {
 		content = fmt.Sprintf(content, args...)
 	}
-	return ctx.Client.UpdateMessage(context.Background(), msg.ChannelID, msg.ID).SetContent(content).Execute()
+	return ctx.Session.ChannelMessageEdit(msg.ChannelID, msg.ID, content)
 }
 
 func (ctx *CommandContext) HasArgs() bool {
 	return len(ctx.RawArgs) > 0
 }
 
-func (ctx *CommandContext) ReplyEmbed(embed *disgord.Embed) (*disgord.Message, error) {
+// ReplyEmbed replies with an embed.
+func (ctx *CommandContext) ReplyEmbed(embed *discordgo.MessageEmbed) (*discordgo.Message, error) {
 	if !ctx.Command.Editable {
 		return ctx.ReplyEmbedNoEdit(embed)
 	}
 	m, ok := ctx.Bot.CommandEdits[ctx.Message.ID]
 	if !ok {
-		msg, err := ctx.Client.CreateMessage(context.Background(), ctx.Channel.ID, &disgord.CreateMessageParams{Embed: embed})
+		msg, err := ctx.Session.ChannelMessageSendEmbed(ctx.Channel.ID, embed)
 		if err != nil {
 			return nil, err
 		}
 		ctx.Bot.CommandEdits[ctx.Message.ID] = msg.ID
 		return msg, nil
 	}
-	return ctx.Client.UpdateMessage(context.Background(), ctx.Channel.ID, m).SetContent("").SetEmbed(embed).Execute()
+	return ctx.Session.ChannelMessageEditComplex(discordgo.NewMessageEdit(ctx.Channel.ID, m).SetContent("").SetEmbed(embed))
 }
 
-func (ctx *CommandContext) ReplyEmbedNoEdit(embed *disgord.Embed) (*disgord.Message, error) {
-	return ctx.Client.CreateMessage(context.Background(), ctx.Channel.ID, &disgord.CreateMessageParams{Embed: embed})
+// ReplyEmbedNoEdits replies with an embed but not considering the editable option of the command.
+func (ctx *CommandContext) ReplyEmbedNoEdit(embed *discordgo.MessageEmbed) (*discordgo.Message, error) {
+	return ctx.Session.ChannelMessageSendEmbed(ctx.Channel.ID, embed)
 }
 
-func (ctx *CommandContext) BuildEmbed(embed *Embed) (*disgord.Message, error) {
+// BuildEmbed calls ReplyEmbed(embed.Build())
+func (ctx *CommandContext) BuildEmbed(embed *Embed) (*discordgo.Message, error) {
 	return ctx.ReplyEmbed(embed.Build())
 }
 
-func (ctx *CommandContext) BuildEmbedNoEdit(embed *Embed) (*disgord.Message, error) {
+// BuildEmbedNoEdit calls ReplyEmbedNoEdit(embed.Build())
+func (ctx *CommandContext) BuildEmbedNoEdit(embed *Embed) (*discordgo.Message, error) {
 	return ctx.ReplyEmbedNoEdit(embed.Build())
 }
 
-func (ctx *CommandContext) SendFile(name string, file io.Reader, content string, args ...interface{}) (*disgord.Message, error) {
+// SendFile sends a file with name
+func (ctx *CommandContext) SendFile(name string, file io.Reader, content string, args ...interface{}) (*discordgo.Message, error) {
 	if len(args) > 0 {
 		content = fmt.Sprintf(content, args...)
 	}
 
-	return ctx.Client.CreateMessage(context.Background(), ctx.Channel.ID, &disgord.CreateMessageParams{Content: content, Files: []disgord.CreateMessageFileParams{{
-		Reader:   file,
-		FileName: name}}})
+	return ctx.Session.ChannelFileSendWithMessage(ctx.Channel.ID, content, name, file)
 }
 
 func (ctx *CommandContext) Error(err interface{}, args ...interface{}) {
@@ -355,40 +364,50 @@ func (ctx *CommandContext) ParseArgs() bool {
 	return true
 }
 
-func (ctx *CommandContext) User(id int64) *disgord.User {
-	u, _ := ctx.Client.Cacher().Get(disgord.UserCache, disgord.NewSnowflake(uint64(id)))
-	return u.(*disgord.User)
+// User gets a user by id, returns nil if not found.
+func (ctx *CommandContext) User(id int64) *discordgo.User {
+	for _, guild := range ctx.Session.State.Guilds {
+		if member, err := ctx.Session.State.Member(guild.ID, id); err == nil {
+			return member.User
+		}
+	}
+	return nil
 }
 
-func (ctx *CommandContext) FetchUser(id int64) (*disgord.User, error) {
+// FetchUser searches the cache for the given user id and if not found, attempts to fetch it from the API.
+func (ctx *CommandContext) FetchUser(id int64) (*discordgo.User, error) {
+	// Try the cache first.
 	user := ctx.User(id)
 
 	if user != nil {
 		return user, nil
 	}
 
-	return ctx.Client.GetUser(context.Background(), disgord.NewSnowflake(uint64(id)))
+	// Call the API.
+	return ctx.Session.User(id)
 }
 
-func (ctx *CommandContext) Member(id int64) *disgord.Member {
+// Member gets a member by id from the current guild, returns nil if not found.
+func (ctx *CommandContext) Member(id int64) *discordgo.Member {
 	if ctx.Guild == nil {
 		return nil
 	}
-	member, err := ctx.Client.GetMember(context.Background(), ctx.Guild.ID, disgord.NewSnowflake(uint64(id)))
+	member, err := ctx.Session.State.Member(ctx.Guild.ID, id)
 	if err != nil {
 		return nil
 	}
 	return member
 }
 
-func (ctx *CommandContext) GetFirstMentionedUser() *disgord.User {
+// GetFirstMentionedUser returns the first user mentioned in the message.
+func (ctx *CommandContext) GetFirstMentionedUser() *discordgo.User {
 	if len(ctx.Message.Mentions) < 1 {
 		return nil
 	}
 	return ctx.Message.Mentions[0]
 }
 
-func (ctx *CommandContext) CodeBlock(lang, content string, args ...interface{}) (*disgord.Message, error) {
+func (ctx *CommandContext) CodeBlock(lang, content string, args ...interface{}) (*discordgo.Message, error) {
 	if len(args) > 0 {
 		content = fmt.Sprintf(content, args...)
 	}
@@ -396,5 +415,5 @@ func (ctx *CommandContext) CodeBlock(lang, content string, args ...interface{}) 
 }
 
 func (ctx *CommandContext) React(emoji string) error {
-	return ctx.Client.CreateReaction(context.Background(), ctx.Channel.ID, ctx.Message.ID, emoji)
+	return ctx.Session.MessageReactionAdd(ctx.Channel.ID, ctx.Message.ID, emoji)
 }
