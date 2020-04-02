@@ -283,7 +283,7 @@ func (bot *Bot) LoadBuiltins() *Bot {
 			if !ok {
 				categories[v.Category] = []string{}
 			}
-			if !v.OwnerOnly || ctx.Author.ID == ctx.Bot.Owner {
+			if !v.OwnerOnly || ctx.Author.ID == ctx.Bot.OwnerID {
 				categories[v.Category] = append(categories[v.Category], v.Name)
 			}
 		}
